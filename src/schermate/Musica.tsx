@@ -6,12 +6,13 @@ import {
   NavigazionePassi,
   Regolamento,
   ServeSessione,
+  StriscaAvanzamento,
 } from '../componenti/Comuni'
 import { LettoreAudio } from '../componenti/LettoreAudio'
 import type { ApiLettore } from '../componenti/LettoreAudio'
 import { REGOLE } from '../dati'
 import type { Rotta } from '../rotte'
-import { formattaPunti, useStore } from '../store'
+import { assegnazioneDi, formattaPunti, useStore, vociAssegnate } from '../store'
 import type { Giocatore } from '../tipi'
 
 /** Primo giocatore non eliminato a partire da `da`, girando in tondo. */
@@ -25,7 +26,7 @@ function indiceDiTurno(giocatori: Giocatore[], da: number, eliminati: string[]) 
 }
 
 export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
-  const { dati, sessione, aggiornaSessione, assegnaPunti } = useStore()
+  const { dati, sessione, aggiornaSessione, assegnaPunti, annullaEvento } = useStore()
   const indizio1 = useRef<ApiLettore>(null)
   const indizio2 = useRef<ApiLettore>(null)
 
@@ -43,6 +44,10 @@ export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
       const corrente = sbloccato >= 2 ? indizio2.current : indizio1.current
       if (e.code === 'Space') {
         e.preventDefault()
+        // Dopo un click il bottone resta col fuoco e si riattiverebbe con lo
+        // spazio: lo togliamo, cosi' spazio vuol dire sempre e solo "play".
+        const attivo = document.activeElement
+        if (attivo instanceof HTMLButtonElement) attivo.blur()
         corrente?.alterna()
       } else if (e.key === 'r' || e.key === 'R') {
         e.preventDefault()
@@ -65,7 +70,11 @@ export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
 
   const categoria = dati.musica[Math.min(stato.categoriaIndex, dati.musica.length - 1)]
   const brano = categoria.brani[Math.min(stato.branoIndex, categoria.brani.length - 1)]
-  const chiuso = stato.chiusi.includes(brano.id)
+  const assegnati = vociAssegnate(sessione, 'musica')
+  const assegnazione = assegnazioneDi(sessione, 'musica', brano.id)
+  const chiPreseIlPunto = assegnazione
+    ? sessione.giocatori.find((g) => g.id === assegnazione.giocatoreId)
+    : undefined
 
   const idxTurno = indiceDiTurno(sessione.giocatori, stato.turnoIndex, stato.eliminati)
   const giocatore = idxTurno >= 0 ? sessione.giocatori[idxTurno] : null
@@ -95,7 +104,7 @@ export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
       giocatoreId: giocatore.id,
       punti: conArtista ? valorePieno : valoreTitolo,
     })
-    patch({ rivelato: true, chiusi: [...new Set([...stato.chiusi, brano.id])] })
+    patch({ rivelato: true })
   }
 
   const sbaglia = () => {
@@ -146,7 +155,7 @@ export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
 
       <div className="selettore-categorie" style={{ marginTop: 14 }}>
         {dati.musica.map((c, i) => {
-          const completa = c.brani.every((b) => stato.chiusi.includes(b.id))
+          const completa = c.brani.every((b) => assegnati.has(b.id))
           return (
             <button
               key={c.id}
@@ -159,6 +168,13 @@ export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
           )
         })}
       </div>
+
+      <StriscaAvanzamento
+        voci={categoria.brani.map((b) => ({ id: b.id, etichetta: b.titolo }))}
+        indiceCorrente={stato.branoIndex}
+        assegnate={assegnati}
+        onVaiA={(i) => cambiaBrano(i, 1, false)}
+      />
 
       {giocatore ? (
         <div className="turno" style={{ '--colore': squadra.colore } as CSSProperties}>
@@ -237,7 +253,24 @@ export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
           </div>
         )}
 
-        {!chiuso && giocatore && (
+        {assegnazione && (
+          <div className="assegna">
+            <div className="card-titolo">
+              Assegnato a{' '}
+              <span style={{ color: 'var(--accento)' }}>{chiPreseIlPunto?.nome ?? '—'}</span>{' '}
+              <span style={{ color: 'var(--testo-fioco)', fontWeight: 500, textTransform: 'none' }}>
+                — {formattaPunti(assegnazione.punti)} punti
+              </span>
+            </div>
+            <div className="riga-bottoni">
+              <button className="btn btn--fantasma" onClick={() => annullaEvento(assegnazione.id)}>
+                ↩ Togli il punto e riassegna
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!assegnazione && giocatore && (
           <div className="assegna">
             <div className="card-titolo">{giocatore.nome} risponde</div>
             <div className="bottoni-squadre">
@@ -313,7 +346,7 @@ export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
         etichettaAvanti={ultimoBrano ? 'Vai alla classifica finale →' : 'Brano successivo →'}
         centro={
           <span style={{ color: 'var(--testo-fioco)', fontSize: 12.5 }}>
-            {stato.chiusi.length} / {dati.musica.reduce((n, c) => n + c.brani.length, 0)} brani
+            {assegnati.size} / {dati.musica.reduce((n, c) => n + c.brani.length, 0)} brani
           </span>
         }
       />

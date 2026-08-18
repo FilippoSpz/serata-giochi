@@ -6,15 +6,16 @@ import {
   NavigazionePassi,
   Regolamento,
   ServeSessione,
+  StriscaAvanzamento,
 } from '../componenti/Comuni'
 import { REGOLE } from '../dati'
 import type { Rotta } from '../rotte'
-import { useStore } from '../store'
+import { assegnazioneDi, useStore, vociAssegnate } from '../store'
 
 const LETTERE = ['A', 'B', 'C', 'D', 'E', 'F']
 
 export function Notizie({ vaiA }: { vaiA: (r: Rotta) => void }) {
-  const { dati, sessione, aggiornaSessione, assegnaPunti } = useStore()
+  const { dati, sessione, aggiornaSessione, assegnaPunti, annullaEvento } = useStore()
 
   if (!sessione) return <ServeSessione vaiASetup={() => vaiA('setup')} />
   if (dati.notizie.length === 0)
@@ -27,7 +28,9 @@ export function Notizie({ vaiA }: { vaiA: (r: Rotta) => void }) {
   // Chi parte alterna a ogni notizia; poi si passa la parola a ogni errore.
   const squadraCorrente = sessione.squadre[(indice + stato.tentativi.length) % 2]
   const squadraSuccessiva = sessione.squadre[(indice + stato.tentativi.length + 1) % 2]
-  const chiusa = stato.chiuse.includes(notizia.id)
+
+  const assegnate = vociAssegnate(sessione, 'notizie')
+  const assegnazione = assegnazioneDi(sessione, 'notizie', notizia.id)
 
   const patch = (p: Partial<typeof stato>) =>
     aggiornaSessione((s) => ({ ...s, notizie: { ...s.notizie, ...p } }))
@@ -40,14 +43,12 @@ export function Notizie({ vaiA }: { vaiA: (r: Rotta) => void }) {
       squadraId,
       punti: 1,
     })
-    patch({ rivelata: true, chiuse: [...new Set([...stato.chiuse, notizia.id])] })
+    patch({ rivelata: true })
   }
 
-  const sbagliata = () =>
-    patch({ tentativi: [...stato.tentativi, squadraCorrente.id] })
+  const sbagliata = () => patch({ tentativi: [...stato.tentativi, squadraCorrente.id] })
 
-  const vaiAllaNotizia = (nuovo: number) =>
-    patch({ indice: nuovo, tentativi: [], rivelata: false })
+  const vaiAllaNotizia = (nuovo: number) => patch({ indice: nuovo, tentativi: [], rivelata: false })
 
   return (
     <>
@@ -57,20 +58,25 @@ export function Notizie({ vaiA }: { vaiA: (r: Rotta) => void }) {
         sottotitolo="Una sola delle quattro possibilità è vera. Ogni notizia indovinata vale 1 punto."
         contatore={`Notizia ${indice + 1} di ${dati.notizie.length}`}
       />
+
+      <StriscaAvanzamento
+        voci={dati.notizie.map((n, i) => ({ id: n.id, etichetta: `Notizia ${i + 1}` }))}
+        indiceCorrente={indice}
+        assegnate={assegnate}
+        onVaiA={vaiAllaNotizia}
+      />
+
       <Regolamento voci={REGOLE.notizie} />
 
-      <div className="card" style={{ marginTop: 18 }}>
+      <div className="card" style={{ marginTop: 14 }}>
         {!stato.rivelata && (
-          <div
-            className="valore-attuale"
-            style={{ '--colore': squadraCorrente.colore } as CSSProperties}
-          >
+          <div className="valore-attuale" style={{ '--colore': squadraCorrente.colore } as CSSProperties}>
             <span className="etichetta">Tocca a</span>
-            <span className="numero" style={{ color: squadraCorrente.colore, fontSize: 22 }}>
+            <span className="numero" style={{ color: squadraCorrente.colore, fontSize: 18 }}>
               {squadraCorrente.nome}
             </span>
             {stato.tentativi.length > 0 && (
-              <span style={{ color: 'var(--testo-tenue)', fontSize: 13 }}>
+              <span style={{ color: 'var(--testo-fioco)', fontSize: 12.5 }}>
                 · {stato.tentativi.length} tentativ{stato.tentativi.length === 1 ? 'o' : 'i'} a vuoto
               </span>
             )}
@@ -108,25 +114,27 @@ export function Notizie({ vaiA }: { vaiA: (r: Rotta) => void }) {
           </div>
         )}
 
-        {!chiusa && (
-          <AssegnaASquadra
-            sessione={sessione}
-            punti={1}
-            etichetta={`Chi ha indovinato? (tocca a ${squadraCorrente.nome})`}
-            onAssegna={(s) => indovinata(s.id, s.nome)}
-          />
-        )}
+        <AssegnaASquadra
+          sessione={sessione}
+          punti={1}
+          assegnataA={assegnazione?.squadraId}
+          puntiAssegnati={assegnazione?.punti}
+          etichetta={`Chi ha indovinato? (tocca a ${squadraCorrente.nome})`}
+          onAssegna={(s) => indovinata(s.id, s.nome)}
+          onRimuovi={() => assegnazione && annullaEvento(assegnazione.id)}
+        />
 
-        <div className="riga-bottoni" style={{ marginTop: 14 }}>
-          {!stato.rivelata && (
-            <>
-              <button className="btn btn--ko" onClick={sbagliata}>
-                {squadraCorrente.nome} sbaglia → passa a {squadraSuccessiva.nome}
-              </button>
-              <button className="btn btn--fantasma" onClick={() => patch({ rivelata: true })}>
-                Nessuno l’ha presa · Rivela
-              </button>
-            </>
+        <div className="riga-bottoni" style={{ marginTop: 12 }}>
+          <button className="btn btn--ko" onClick={sbagliata}>
+            {squadraCorrente.nome} sbaglia → passa a {squadraSuccessiva.nome}
+          </button>
+          <button className="btn btn--fantasma" onClick={() => patch({ rivelata: !stato.rivelata })}>
+            {stato.rivelata ? 'Nascondi risposta' : 'Nessuno l’ha presa · Rivela'}
+          </button>
+          {stato.tentativi.length > 0 && (
+            <button className="btn btn--fantasma" onClick={() => patch({ tentativi: [] })}>
+              Azzera tentativi
+            </button>
           )}
           <AnnullaUltimo />
         </div>
@@ -143,8 +151,8 @@ export function Notizie({ vaiA }: { vaiA: (r: Rotta) => void }) {
           indice === dati.notizie.length - 1 ? 'Vai al gioco 2 · Immagini →' : 'Notizia successiva →'
         }
         centro={
-          <span style={{ alignSelf: 'center', color: 'var(--testo-tenue)', fontSize: 13 }}>
-            {stato.chiuse.length} / {dati.notizie.length} assegnate
+          <span style={{ color: 'var(--testo-fioco)', fontSize: 12.5 }}>
+            {assegnate.size} / {dati.notizie.length} assegnate
           </span>
         }
       />

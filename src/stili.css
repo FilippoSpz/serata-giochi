@@ -625,6 +625,53 @@ details.regolamento[open] summary {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+.btn-squadra--assegnata {
+  background: color-mix(in srgb, var(--colore) 22%, transparent);
+  border-color: var(--colore);
+  border-width: 2px;
+}
+.segno-assegnata {
+  color: var(--colore);
+  font-weight: 800;
+}
+
+/* ------------------------------------------------- striscia di navigazione */
+.striscia-avanzamento {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.passo {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid var(--bordo);
+  background: var(--superficie);
+  color: var(--testo-fioco);
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
+}
+.passo:hover {
+  color: var(--testo);
+  border-color: var(--bordo-forte);
+}
+.passo--fatto {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 40%, transparent);
+  background: color-mix(in srgb, var(--ok) 9%, transparent);
+}
+.passo--corrente {
+  border-color: var(--accento);
+  color: var(--accento);
+  background: var(--accento-tenue);
+  box-shadow: inset 0 0 0 1px var(--accento);
+}
 
 /* ---------------------------------------------------------------- immagini */
 .palco {

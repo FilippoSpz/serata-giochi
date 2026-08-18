@@ -3,6 +3,7 @@ import { ServeSessione } from '../componenti/Comuni'
 import type { Rotta } from '../rotte'
 import {
   formattaPunti,
+  nuovoId,
   punteggioGiocatore,
   punteggioSquadra,
   punteggioSquadraPerGioco,
@@ -33,7 +34,9 @@ export function Classifica({ vaiA }: { vaiA: (r: Rotta) => void }) {
   const rettifica = (squadraId: string, giocatoreId: string | undefined, delta: number) =>
     assegnaPunti({
       gioco: 'manuale',
-      voceId: 'rettifica',
+      // Identificativo unico: le rettifiche si sommano, non si sostituiscono
+      // come fanno le assegnazioni di una stessa voce di gioco.
+      voceId: nuovoId('rettifica'),
       etichetta: `Rettifica manuale ${delta > 0 ? '+' : ''}${delta}`,
       squadraId,
       giocatoreId,

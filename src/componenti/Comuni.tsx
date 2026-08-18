@@ -54,38 +54,104 @@ export function ValoreAttuale({ punti, nota }: { punti: number; nota?: string })
 
 /**
  * Riga di bottoni "chi ha indovinato": uno per squadra, con il valore corrente.
- * Usata dai tre giochi a squadre (notizie, immagini, qdcp).
+ * Restano sempre attivi anche dopo l'assegnazione: cliccare l'altra squadra
+ * sposta il punto, cliccare quella gia' segnata lo toglie. Nessun vicolo cieco.
  */
 export function AssegnaASquadra({
   sessione,
   punti,
-  disabilitato,
+  assegnataA,
+  puntiAssegnati,
   etichetta = 'Chi ha indovinato?',
   onAssegna,
+  onRimuovi,
 }: {
   sessione: Sessione
   punti: number
-  disabilitato?: boolean
+  /** Squadra che ha gia' preso questa voce, se c'e' */
+  assegnataA?: string
+  /** Punti effettivamente assegnati, che possono differire dal valore corrente */
+  puntiAssegnati?: number
   etichetta?: string
   onAssegna: (squadra: Squadra) => void
+  onRimuovi?: () => void
 }) {
+  const squadraAssegnata = sessione.squadre.find((s) => s.id === assegnataA)
+
   return (
     <div className="assegna">
-      <div className="card-titolo">{etichetta}</div>
-      <div className="bottoni-squadre">
-        {sessione.squadre.map((s) => (
-          <button
-            key={s.id}
-            className="btn-squadra"
-            style={{ '--colore': s.colore } as CSSProperties}
-            disabled={disabilitato}
-            onClick={() => onAssegna(s)}
-          >
-            <span>{s.nome}</span>
-            <span className="premio">+{formattaPunti(punti)}</span>
-          </button>
-        ))}
+      <div className="card-titolo">
+        {squadraAssegnata ? (
+          <>
+            Assegnata a <span style={{ color: squadraAssegnata.colore }}>{squadraAssegnata.nome}</span>{' '}
+            <span style={{ color: 'var(--testo-fioco)', fontWeight: 500, textTransform: 'none' }}>
+              — clicca l’altra squadra per spostare il punto
+            </span>
+          </>
+        ) : (
+          etichetta
+        )}
       </div>
+      <div className="bottoni-squadre">
+        {sessione.squadre.map((s) => {
+          const sua = s.id === assegnataA
+          return (
+            <button
+              key={s.id}
+              className={`btn-squadra${sua ? ' btn-squadra--assegnata' : ''}`}
+              style={{ '--colore': s.colore } as CSSProperties}
+              onClick={() => (sua ? onRimuovi?.() : onAssegna(s))}
+              title={sua ? 'Clicca per togliere il punto' : `Assegna a ${s.nome}`}
+            >
+              <span>
+                {sua && <span className="segno-assegnata">✓ </span>}
+                {s.nome}
+              </span>
+              <span className="premio">
+                {sua ? formattaPunti(puntiAssegnati ?? punti) : `+${formattaPunti(punti)}`}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Striscia di navigazione: una casella per voce, spuntata quando assegnata.
+ * Serve a vedere a colpo d'occhio cosa manca e a saltarci sopra direttamente,
+ * senza scorrere avanti e indietro con "precedente"/"successivo".
+ */
+export function StriscaAvanzamento({
+  voci,
+  indiceCorrente,
+  assegnate,
+  onVaiA,
+}: {
+  voci: { id: string; etichetta: string }[]
+  indiceCorrente: number
+  assegnate: Set<string>
+  onVaiA: (i: number) => void
+}) {
+  return (
+    <div className="striscia-avanzamento">
+      {voci.map((v, i) => {
+        const fatta = assegnate.has(v.id)
+        return (
+          <button
+            key={v.id}
+            className={`passo${i === indiceCorrente ? ' passo--corrente' : ''}${
+              fatta ? ' passo--fatto' : ''
+            }`}
+            onClick={() => onVaiA(i)}
+            title={`${v.etichetta}${fatta ? ' — già assegnata' : ''}`}
+            aria-current={i === indiceCorrente}
+          >
+            {fatta ? '✓' : i + 1}
+          </button>
+        )
+      })}
     </div>
   )
 }

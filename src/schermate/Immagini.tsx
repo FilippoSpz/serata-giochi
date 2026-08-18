@@ -5,14 +5,15 @@ import {
   NavigazionePassi,
   Regolamento,
   ServeSessione,
+  StriscaAvanzamento,
   ValoreAttuale,
 } from '../componenti/Comuni'
 import { REGOLE } from '../dati'
 import type { Rotta } from '../rotte'
-import { useStore } from '../store'
+import { assegnazioneDi, useStore, vociAssegnate } from '../store'
 
 export function Immagini({ vaiA }: { vaiA: (r: Rotta) => void }) {
-  const { dati, sessione, aggiornaSessione, assegnaPunti } = useStore()
+  const { dati, sessione, aggiornaSessione, assegnaPunti, annullaEvento } = useStore()
 
   if (!sessione) return <ServeSessione vaiASetup={() => vaiA('setup')} />
   if (dati.immagini.length === 0)
@@ -24,7 +25,8 @@ export function Immagini({ vaiA }: { vaiA: (r: Rotta) => void }) {
   const totaleImmagini = voce.immagini.length
   const mostrate = Math.min(stato.immagineIndex, totaleImmagini)
   const punti = Math.max(1, categoria.puntiIniziali - (mostrate - 1))
-  const chiusa = stato.chiuse.includes(voce.id)
+  const assegnate = vociAssegnate(sessione, 'immagini')
+  const assegnazione = assegnazioneDi(sessione, 'immagini', voce.id)
   const ultimaVoce =
     stato.categoriaIndex === dati.immagini.length - 1 && stato.voceIndex === categoria.voci.length - 1
 
@@ -42,7 +44,7 @@ export function Immagini({ vaiA }: { vaiA: (r: Rotta) => void }) {
       squadraId,
       punti,
     })
-    patch({ rivelata: true, chiuse: [...new Set([...stato.chiuse, voce.id])] })
+    patch({ rivelata: true })
   }
 
   const avanti = () => {
@@ -92,9 +94,9 @@ export function Immagini({ vaiA }: { vaiA: (r: Rotta) => void }) {
 
       <Regolamento voci={REGOLE.immagini} />
 
-      <div className="selettore-categorie" style={{ marginTop: 16 }}>
+      <div className="selettore-categorie" style={{ marginTop: 14 }}>
         {dati.immagini.map((c, i) => {
-          const completa = c.voci.every((v) => stato.chiuse.includes(v.id))
+          const completa = c.voci.every((v) => assegnate.has(v.id))
           return (
             <button
               key={c.id}
@@ -107,6 +109,13 @@ export function Immagini({ vaiA }: { vaiA: (r: Rotta) => void }) {
           )
         })}
       </div>
+
+      <StriscaAvanzamento
+        voci={categoria.voci.map((v) => ({ id: v.id, etichetta: v.nome }))}
+        indiceCorrente={stato.voceIndex}
+        assegnate={assegnate}
+        onVaiA={(i) => vaiAVoce(stato.categoriaIndex, i)}
+      />
 
       <div className="card">
         <ValoreAttuale
@@ -154,15 +163,16 @@ export function Immagini({ vaiA }: { vaiA: (r: Rotta) => void }) {
 
         {stato.rivelata && <div className="nome-soluzione">{voce.nome}</div>}
 
-        {!chiusa && (
-          <AssegnaASquadra
-            sessione={sessione}
-            punti={punti}
-            onAssegna={(s) => indovinata(s.id, s.nome)}
-          />
-        )}
+        <AssegnaASquadra
+          sessione={sessione}
+          punti={punti}
+          assegnataA={assegnazione?.squadraId}
+          puntiAssegnati={assegnazione?.punti}
+          onAssegna={(s) => indovinata(s.id, s.nome)}
+          onRimuovi={() => assegnazione && annullaEvento(assegnazione.id)}
+        />
 
-        <div className="riga-bottoni" style={{ marginTop: 14 }}>
+        <div className="riga-bottoni" style={{ marginTop: 12 }}>
           {mostrate < totaleImmagini && !stato.rivelata && (
             <button
               className="btn btn--primario"
@@ -191,8 +201,8 @@ export function Immagini({ vaiA }: { vaiA: (r: Rotta) => void }) {
         disabilitaIndietro={stato.categoriaIndex === 0 && stato.voceIndex === 0}
         etichettaAvanti={ultimaVoce ? 'Vai al gioco 3 · QDCP →' : 'Prossima immagine →'}
         centro={
-          <span style={{ alignSelf: 'center', color: 'var(--testo-tenue)', fontSize: 13 }}>
-            {stato.chiuse.length} / {dati.immagini.reduce((n, c) => n + c.voci.length, 0)} assegnate
+          <span style={{ color: 'var(--testo-fioco)', fontSize: 12.5 }}>
+            {assegnate.size} / {dati.immagini.reduce((n, c) => n + c.voci.length, 0)} assegnate
           </span>
         }
       />

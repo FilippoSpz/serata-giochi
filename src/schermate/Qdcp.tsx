@@ -5,11 +5,12 @@ import {
   NavigazionePassi,
   Regolamento,
   ServeSessione,
+  StriscaAvanzamento,
   ValoreAttuale,
 } from '../componenti/Comuni'
 import { REGOLE } from '../dati'
 import type { Rotta } from '../rotte'
-import { useStore } from '../store'
+import { assegnazioneDi, useStore, vociAssegnate } from '../store'
 import type { ParolaQdcp } from '../tipi'
 
 const CHIAVI: { chiave: keyof ParolaQdcp; etichetta: string }[] = [
@@ -20,7 +21,7 @@ const CHIAVI: { chiave: keyof ParolaQdcp; etichetta: string }[] = [
 ]
 
 export function Qdcp({ vaiA }: { vaiA: (r: Rotta) => void }) {
-  const { dati, sessione, aggiornaSessione, assegnaPunti } = useStore()
+  const { dati, sessione, aggiornaSessione, assegnaPunti, annullaEvento } = useStore()
 
   if (!sessione) return <ServeSessione vaiASetup={() => vaiA('setup')} />
   if (dati.qdcp.length === 0)
@@ -31,7 +32,9 @@ export function Qdcp({ vaiA }: { vaiA: (r: Rotta) => void }) {
   const parola = dati.qdcp[indice]
   const letti = Math.min(Math.max(stato.indiziLetti, 1), CHIAVI.length)
   const punti = Math.max(1, CHIAVI.length + 1 - letti)
-  const chiusa = stato.chiuse.includes(parola.id)
+
+  const assegnate = vociAssegnate(sessione, 'qdcp')
+  const assegnazione = assegnazioneDi(sessione, 'qdcp', parola.id)
 
   const patch = (p: Partial<typeof stato>) =>
     aggiornaSessione((s) => ({ ...s, qdcp: { ...s.qdcp, ...p } }))
@@ -47,7 +50,7 @@ export function Qdcp({ vaiA }: { vaiA: (r: Rotta) => void }) {
       squadraId,
       punti,
     })
-    patch({ rivelata: true, chiuse: [...new Set([...stato.chiuse, parola.id])] })
+    patch({ rivelata: true })
   }
 
   return (
@@ -58,6 +61,14 @@ export function Qdcp({ vaiA }: { vaiA: (r: Rotta) => void }) {
         sottotitolo="Gli indizi si leggono uno alla volta, sempre nello stesso ordine. Si parte da 4 punti."
         contatore={`Parola ${indice + 1} di ${dati.qdcp.length}`}
       />
+
+      <StriscaAvanzamento
+        voci={dati.qdcp.map((p) => ({ id: p.id, etichetta: p.parola }))}
+        indiceCorrente={indice}
+        assegnate={assegnate}
+        onVaiA={vaiAParola}
+      />
+
       <Regolamento voci={REGOLE.qdcp} />
 
       <div className="card" style={{ marginTop: 18 }}>
@@ -79,15 +90,16 @@ export function Qdcp({ vaiA }: { vaiA: (r: Rotta) => void }) {
           })}
         </div>
 
-        {!chiusa && (
-          <AssegnaASquadra
-            sessione={sessione}
-            punti={punti}
-            onAssegna={(s) => indovinata(s.id, s.nome)}
-          />
-        )}
+        <AssegnaASquadra
+          sessione={sessione}
+          punti={punti}
+          assegnataA={assegnazione?.squadraId}
+          puntiAssegnati={assegnazione?.punti}
+          onAssegna={(s) => indovinata(s.id, s.nome)}
+          onRimuovi={() => assegnazione && annullaEvento(assegnazione.id)}
+        />
 
-        <div className="riga-bottoni" style={{ marginTop: 14 }}>
+        <div className="riga-bottoni" style={{ marginTop: 12 }}>
           {letti < CHIAVI.length && (
             <button className="btn btn--primario" onClick={() => patch({ indiziLetti: letti + 1 })}>
               Leggi «{CHIAVI[letti].etichetta}» → vale {punti - 1}
@@ -119,8 +131,8 @@ export function Qdcp({ vaiA }: { vaiA: (r: Rotta) => void }) {
           indice === dati.qdcp.length - 1 ? 'Vai al gioco 4 · Musica →' : 'Parola successiva →'
         }
         centro={
-          <span style={{ alignSelf: 'center', color: 'var(--testo-tenue)', fontSize: 13 }}>
-            {stato.chiuse.length} / {dati.qdcp.length} assegnate
+          <span style={{ color: 'var(--testo-fioco)', fontSize: 12.5 }}>
+            {assegnate.size} / {dati.qdcp.length} assegnate
           </span>
         }
       />
