@@ -9,10 +9,6 @@ dist/
 .env.*
 !.env.example
 
-# I brani completi pesano ~219 MB in totale: restano in locale, fuori dal repo.
-# Servono solo per il "reveal" musicale; senza, l'app mostra titolo e artista.
-# Per rigenerarli: npm run importa-media
-public/media/musica/**/completo.mp3
 
 # Artefatto incrementale di tsc -b
 tsconfig.tsbuildinfo

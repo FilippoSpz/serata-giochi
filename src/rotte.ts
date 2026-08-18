@@ -9,6 +9,7 @@ export const ROTTE = [
   'musica',
   'classifica',
   'gestione',
+  'proiezione',
 ] as const
 
 export type Rotta = (typeof ROTTE)[number]

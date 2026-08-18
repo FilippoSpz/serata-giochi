@@ -69,6 +69,27 @@ export function Immagini({ vaiA }: { vaiA: (r: Rotta) => void }) {
         sottotitolo={categoria.descrizione}
         contatore={`${voce.nome ? stato.voceIndex + 1 : 0} di ${categoria.voci.length} · ${categoria.nome}`}
       />
+
+      <div className="avviso avviso--accento" style={{ marginBottom: 14 }}>
+        Questo è l’unico gioco che vedono anche i giocatori.{' '}
+        <button
+          className="btn btn--piccolo"
+          style={{ marginLeft: 8 }}
+          onClick={() =>
+            window.open(
+              `${window.location.pathname}#/proiezione`,
+              'proiezione-serata-giochi',
+              'width=1280,height=800',
+            )
+          }
+        >
+          ⧉ Apri schermo giocatori
+        </button>{' '}
+        <span style={{ color: 'var(--testo-fioco)' }}>
+          Si aggiorna da solo mentre comandi da qui. Trascinalo sulla TV e metti a schermo intero.
+        </span>
+      </div>
+
       <Regolamento voci={REGOLE.immagini} />
 
       <div className="selettore-categorie" style={{ marginTop: 16 }}>

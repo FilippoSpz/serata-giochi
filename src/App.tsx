@@ -8,25 +8,38 @@ import { Home } from './schermate/Home'
 import { Immagini } from './schermate/Immagini'
 import { Musica } from './schermate/Musica'
 import { Notizie } from './schermate/Notizie'
+import { Proiezione } from './schermate/Proiezione'
 import { Qdcp } from './schermate/Qdcp'
 import { Setup } from './schermate/Setup'
 
 const VOCI_NAV: { rotta: Rotta; etichetta: string }[] = [
   { rotta: 'home', etichetta: 'Home' },
-  { rotta: 'notizie', etichetta: '1 · Notizie' },
-  { rotta: 'immagini', etichetta: '2 · Immagini' },
-  { rotta: 'qdcp', etichetta: '3 · QDCP' },
-  { rotta: 'musica', etichetta: '4 · Musica' },
+  { rotta: 'notizie', etichetta: '1 Notizie' },
+  { rotta: 'immagini', etichetta: '2 Immagini' },
+  { rotta: 'qdcp', etichetta: '3 QDCP' },
+  { rotta: 'musica', etichetta: '4 Musica' },
   { rotta: 'classifica', etichetta: 'Classifica' },
   { rotta: 'gestione', etichetta: 'Gestione' },
 ]
+
+/** Ogni gioco ha il suo ambiente cromatico; il resto resta neutro. */
+const AMBIENTE: Partial<Record<Rotta, string>> = {
+  notizie: 'notizie',
+  immagini: 'immagini',
+  qdcp: 'qdcp',
+  musica: 'musica',
+  proiezione: 'immagini',
+}
 
 export function App() {
   const [rotta, vaiA] = useRotta()
   const { sessione } = useStore()
 
+  // Lo schermo dei giocatori non ha barra, navigazione ne' punteggi.
+  if (rotta === 'proiezione') return <Proiezione />
+
   return (
-    <div className="app">
+    <div className="app" data-gioco={AMBIENTE[rotta] ?? 'neutro'}>
       <header className="topbar">
         <div className="marchio">
           <span>🎲</span>
@@ -34,11 +47,7 @@ export function App() {
         </div>
         <nav className="nav">
           {VOCI_NAV.map((v) => (
-            <button
-              key={v.rotta}
-              aria-current={rotta === v.rotta}
-              onClick={() => vaiA(v.rotta)}
-            >
+            <button key={v.rotta} aria-current={rotta === v.rotta} onClick={() => vaiA(v.rotta)}>
               {v.etichetta}
             </button>
           ))}

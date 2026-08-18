@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useConferma } from '../componenti/Conferma'
 import { DATI_INIZIALI } from '../dati'
 import { nuovoId, useStore } from '../store'
 import type {
@@ -14,16 +15,49 @@ import type {
 type Scheda = 'notizie' | 'immagini' | 'qdcp' | 'musica' | 'file'
 
 const SCHEDE: { id: Scheda; nome: string }[] = [
-  { id: 'notizie', nome: '1 · Notizie false' },
-  { id: 'immagini', nome: '2 · Immagini' },
-  { id: 'qdcp', nome: '3 · QDCP' },
-  { id: 'musica', nome: '4 · Musica' },
+  { id: 'notizie', nome: '1 Notizie false' },
+  { id: 'immagini', nome: '2 Immagini' },
+  { id: 'qdcp', nome: '3 QDCP' },
+  { id: 'musica', nome: '4 Musica' },
   { id: 'file', nome: 'Backup e ripristino' },
 ]
 
+/** Chiede conferma, esegue, e tiene da parte lo stato precedente per annullare. */
+type Elimina = (cosa: string, dettaglio: string | undefined, azione: () => void) => void
+
+type Props = {
+  dati: DatiGiochi
+  setDati: (f: (d: DatiGiochi) => DatiGiochi) => void
+  elimina: Elimina
+}
+
 export function Gestione() {
   const { dati, setDati, ripristinaDati } = useStore()
+  const conferma = useConferma()
   const [scheda, setScheda] = useState<Scheda>('notizie')
+  const [annullabile, setAnnullabile] = useState<{ dati: DatiGiochi; cosa: string } | null>(null)
+
+  const elimina: Elimina = (cosa, dettaglio, azione) => {
+    const istantanea = dati
+    void conferma({
+      titolo: `Eliminare ${cosa}?`,
+      messaggio: dettaglio,
+      conferma: 'Elimina',
+      pericolo: true,
+    }).then((ok) => {
+      if (!ok) return
+      setAnnullabile({ dati: istantanea, cosa })
+      azione()
+    })
+  }
+
+  const annulla = () => {
+    if (!annullabile) return
+    setDati(() => annullabile.dati)
+    setAnnullabile(null)
+  }
+
+  const props: Props = { dati, setDati, elimina }
 
   return (
     <>
@@ -31,10 +65,27 @@ export function Gestione() {
         <div>
           <h2>Gestione contenuti</h2>
           <div className="sottotitolo">
-            Ogni modifica è salvata subito nel browser e vale per le prossime sessioni.
+            Ogni modifica è salvata subito nel browser. Le eliminazioni chiedono conferma e restano
+            annullabili finché non cambi scheda.
           </div>
         </div>
       </div>
+
+      {annullabile && (
+        <div className="avviso avviso--accento" style={{ marginBottom: 14 }}>
+          Eliminato: <b>{annullabile.cosa}</b>
+          <button className="btn btn--piccolo" style={{ marginLeft: 12 }} onClick={annulla}>
+            ↩ Annulla eliminazione
+          </button>
+          <button
+            className="btn btn--piccolo btn--fantasma"
+            style={{ marginLeft: 6 }}
+            onClick={() => setAnnullabile(null)}
+          >
+            Va bene così
+          </button>
+        </div>
+      )}
 
       <div className="selettore-categorie">
         {SCHEDE.map((s) => (
@@ -42,49 +93,34 @@ export function Gestione() {
             key={s.id}
             className="chip"
             aria-pressed={scheda === s.id}
-            onClick={() => setScheda(s.id)}
+            onClick={() => {
+              setScheda(s.id)
+              setAnnullabile(null)
+            }}
           >
             {s.nome}
           </button>
         ))}
       </div>
 
-      {scheda === 'notizie' && <ModificaNotizie dati={dati} setDati={setDati} />}
-      {scheda === 'immagini' && <ModificaImmagini dati={dati} setDati={setDati} />}
-      {scheda === 'qdcp' && <ModificaQdcp dati={dati} setDati={setDati} />}
-      {scheda === 'musica' && <ModificaMusica dati={dati} setDati={setDati} />}
-      {scheda === 'file' && <BackupRipristino dati={dati} setDati={setDati} ripristina={ripristinaDati} />}
+      {scheda === 'notizie' && <ModificaNotizie {...props} />}
+      {scheda === 'immagini' && <ModificaImmagini {...props} />}
+      {scheda === 'qdcp' && <ModificaQdcp {...props} />}
+      {scheda === 'musica' && <ModificaMusica {...props} />}
+      {scheda === 'file' && (
+        <BackupRipristino {...props} ripristina={ripristinaDati} setAnnullabile={setAnnullabile} />
+      )}
     </>
   )
 }
 
-type Props = { dati: DatiGiochi; setDati: (f: (d: DatiGiochi) => DatiGiochi) => void }
-
 // ---------------------------------------------------------------- notizie
-function ModificaNotizie({ dati, setDati }: Props) {
+function ModificaNotizie({ dati, setDati, elimina }: Props) {
   const aggiorna = (id: string, campo: Partial<Notizia>) =>
     setDati((d) => ({
       ...d,
       notizie: d.notizie.map((n) => (n.id === id ? { ...n, ...campo } : n)),
     }))
-
-  const aggiungi = () =>
-    setDati((d) => ({
-      ...d,
-      notizie: [
-        ...d.notizie,
-        {
-          id: nuovoId('not'),
-          domanda: 'Nuova domanda',
-          opzioni: ['Opzione 1', 'Opzione 2', 'Opzione 3', 'Opzione 4'],
-          correttaIndex: 0,
-          spiegazione: '',
-        },
-      ],
-    }))
-
-  const elimina = (id: string) =>
-    setDati((d) => ({ ...d, notizie: d.notizie.filter((n) => n.id !== id) }))
 
   return (
     <div className="card">
@@ -94,7 +130,14 @@ function ModificaNotizie({ dati, setDati }: Props) {
           <div key={n.id} className="blocco-modifica">
             <div className="testa">
               <strong>Notizia {i + 1}</strong>
-              <button className="btn btn--piccolo btn--ko" onClick={() => elimina(n.id)}>
+              <button
+                className="btn btn--piccolo btn--ko"
+                onClick={() =>
+                  elimina(`la notizia ${i + 1}`, n.domanda.slice(0, 120), () =>
+                    setDati((d) => ({ ...d, notizie: d.notizie.filter((x) => x.id !== n.id) })),
+                  )
+                }
+              >
                 Elimina
               </button>
             </div>
@@ -128,11 +171,19 @@ function ModificaNotizie({ dati, setDati }: Props) {
                     <button
                       className="btn btn--piccolo btn--fantasma"
                       disabled={n.opzioni.length <= 2}
+                      title="Elimina questa opzione"
                       onClick={() =>
-                        aggiorna(n.id, {
-                          opzioni: n.opzioni.filter((_, k) => k !== j),
-                          correttaIndex: Math.min(n.correttaIndex, n.opzioni.length - 2),
-                        })
+                        elimina(`l’opzione «${o.slice(0, 60)}»`, undefined, () =>
+                          aggiorna(n.id, {
+                            opzioni: n.opzioni.filter((_, k) => k !== j),
+                            correttaIndex:
+                              n.correttaIndex === j
+                                ? 0
+                                : n.correttaIndex > j
+                                  ? n.correttaIndex - 1
+                                  : n.correttaIndex,
+                          }),
+                        )
                       }
                     >
                       ✕
@@ -158,7 +209,25 @@ function ModificaNotizie({ dati, setDati }: Props) {
           </div>
         ))}
       </div>
-      <button className="btn btn--primario" style={{ marginTop: 16 }} onClick={aggiungi}>
+      <button
+        className="btn btn--primario"
+        style={{ marginTop: 14 }}
+        onClick={() =>
+          setDati((d) => ({
+            ...d,
+            notizie: [
+              ...d.notizie,
+              {
+                id: nuovoId('not'),
+                domanda: 'Nuova domanda',
+                opzioni: ['Opzione 1', 'Opzione 2', 'Opzione 3', 'Opzione 4'],
+                correttaIndex: 0,
+                spiegazione: '',
+              },
+            ],
+          }))
+        }
+      >
         + Aggiungi notizia
       </button>
     </div>
@@ -166,7 +235,7 @@ function ModificaNotizie({ dati, setDati }: Props) {
 }
 
 // --------------------------------------------------------------- immagini
-function ModificaImmagini({ dati, setDati }: Props) {
+function ModificaImmagini({ dati, setDati, elimina }: Props) {
   const aggiornaCategoria = (id: string, campo: Partial<CategoriaImmagini>) =>
     setDati((d) => ({
       ...d,
@@ -187,7 +256,7 @@ function ModificaImmagini({ dati, setDati }: Props) {
     <>
       {dati.immagini.map((c) => (
         <div key={c.id} className="card">
-          <div className="griglia-campi griglia-campi--2" style={{ marginBottom: 16 }}>
+          <div className="griglia-campi griglia-campi--2" style={{ marginBottom: 12 }}>
             <div className="campo">
               <label>Nome categoria</label>
               <input
@@ -208,7 +277,7 @@ function ModificaImmagini({ dati, setDati }: Props) {
               />
             </div>
           </div>
-          <div className="campo" style={{ marginBottom: 16 }}>
+          <div className="campo" style={{ marginBottom: 12 }}>
             <label>Descrizione mostrata durante il gioco</label>
             <input
               value={c.descrizione}
@@ -224,14 +293,19 @@ function ModificaImmagini({ dati, setDati }: Props) {
                   <button
                     className="btn btn--piccolo btn--ko"
                     onClick={() =>
-                      setDati((d) => ({
-                        ...d,
-                        immagini: d.immagini.map((cc) =>
-                          cc.id === c.id
-                            ? { ...cc, voci: cc.voci.filter((vv) => vv.id !== v.id) }
-                            : cc,
-                        ),
-                      }))
+                      elimina(
+                        `«${v.nome}» da ${c.nome}`,
+                        `${v.immagini.length} immagini collegate. I file restano su disco.`,
+                        () =>
+                          setDati((d) => ({
+                            ...d,
+                            immagini: d.immagini.map((cc) =>
+                              cc.id === c.id
+                                ? { ...cc, voci: cc.voci.filter((vv) => vv.id !== v.id) }
+                                : cc,
+                            ),
+                          })),
+                      )
                     }
                   >
                     Elimina
@@ -251,7 +325,10 @@ function ModificaImmagini({ dati, setDati }: Props) {
                       value={v.immagini.join('\n')}
                       onChange={(e) =>
                         aggiornaVoce(c.id, v.id, {
-                          immagini: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean),
+                          immagini: e.target.value
+                            .split('\n')
+                            .map((s) => s.trim())
+                            .filter(Boolean),
                         })
                       }
                     />
@@ -273,7 +350,7 @@ function ModificaImmagini({ dati, setDati }: Props) {
 
           <button
             className="btn btn--primario"
-            style={{ marginTop: 16 }}
+            style={{ marginTop: 14 }}
             onClick={() =>
               setDati((d) => ({
                 ...d,
@@ -281,10 +358,7 @@ function ModificaImmagini({ dati, setDati }: Props) {
                   cc.id === c.id
                     ? {
                         ...cc,
-                        voci: [
-                          ...cc.voci,
-                          { id: nuovoId('voce'), nome: 'Nuova voce', immagini: [] },
-                        ],
+                        voci: [...cc.voci, { id: nuovoId('voce'), nome: 'Nuova voce', immagini: [] }],
                       }
                     : cc,
                 ),
@@ -300,7 +374,7 @@ function ModificaImmagini({ dati, setDati }: Props) {
 }
 
 // ------------------------------------------------------------------- qdcp
-function ModificaQdcp({ dati, setDati }: Props) {
+function ModificaQdcp({ dati, setDati, elimina }: Props) {
   const aggiorna = (id: string, campo: Partial<ParolaQdcp>) =>
     setDati((d) => ({ ...d, qdcp: d.qdcp.map((p) => (p.id === id ? { ...p, ...campo } : p)) }))
 
@@ -314,7 +388,11 @@ function ModificaQdcp({ dati, setDati }: Props) {
               <strong>{p.parola}</strong>
               <button
                 className="btn btn--piccolo btn--ko"
-                onClick={() => setDati((d) => ({ ...d, qdcp: d.qdcp.filter((x) => x.id !== p.id) }))}
+                onClick={() =>
+                  elimina(`la parola «${p.parola}»`, 'Con tutti e quattro i suoi indizi.', () =>
+                    setDati((d) => ({ ...d, qdcp: d.qdcp.filter((x) => x.id !== p.id) })),
+                  )
+                }
               >
                 Elimina
               </button>
@@ -346,20 +424,13 @@ function ModificaQdcp({ dati, setDati }: Props) {
       </div>
       <button
         className="btn btn--primario"
-        style={{ marginTop: 16 }}
+        style={{ marginTop: 14 }}
         onClick={() =>
           setDati((d) => ({
             ...d,
             qdcp: [
               ...d.qdcp,
-              {
-                id: nuovoId('qdcp'),
-                parola: 'Nuova parola',
-                quando: '',
-                dove: '',
-                come: '',
-                perche: '',
-              },
+              { id: nuovoId('qdcp'), parola: 'Nuova parola', quando: '', dove: '', come: '', perche: '' },
             ],
           }))
         }
@@ -371,12 +442,9 @@ function ModificaQdcp({ dati, setDati }: Props) {
 }
 
 // ----------------------------------------------------------------- musica
-function ModificaMusica({ dati, setDati }: Props) {
+function ModificaMusica({ dati, setDati, elimina }: Props) {
   const aggiornaCategoria = (id: string, campo: Partial<CategoriaMusica>) =>
-    setDati((d) => ({
-      ...d,
-      musica: d.musica.map((c) => (c.id === id ? { ...c, ...campo } : c)),
-    }))
+    setDati((d) => ({ ...d, musica: d.musica.map((c) => (c.id === id ? { ...c, ...campo } : c)) }))
 
   const aggiornaBrano = (catId: string, branoId: string, campo: Partial<Brano>) =>
     setDati((d) => ({
@@ -392,12 +460,9 @@ function ModificaMusica({ dati, setDati }: Props) {
     <>
       {dati.musica.map((c) => (
         <div key={c.id} className="card">
-          <div className="campo" style={{ marginBottom: 16 }}>
+          <div className="campo" style={{ marginBottom: 12 }}>
             <label>Nome categoria</label>
-            <input
-              value={c.nome}
-              onChange={(e) => aggiornaCategoria(c.id, { nome: e.target.value })}
-            />
+            <input value={c.nome} onChange={(e) => aggiornaCategoria(c.id, { nome: e.target.value })} />
           </div>
           <div className="elenco-modifica">
             {c.brani.map((b, i) => (
@@ -409,14 +474,19 @@ function ModificaMusica({ dati, setDati }: Props) {
                   <button
                     className="btn btn--piccolo btn--ko"
                     onClick={() =>
-                      setDati((d) => ({
-                        ...d,
-                        musica: d.musica.map((cc) =>
-                          cc.id === c.id
-                            ? { ...cc, brani: cc.brani.filter((bb) => bb.id !== b.id) }
-                            : cc,
-                        ),
-                      }))
+                      elimina(
+                        `«${b.titolo}» da ${c.nome}`,
+                        'I file audio restano su disco.',
+                        () =>
+                          setDati((d) => ({
+                            ...d,
+                            musica: d.musica.map((cc) =>
+                              cc.id === c.id
+                                ? { ...cc, brani: cc.brani.filter((bb) => bb.id !== b.id) }
+                                : cc,
+                            ),
+                          })),
+                      )
                     }
                   >
                     Elimina
@@ -452,7 +522,7 @@ function ModificaMusica({ dati, setDati }: Props) {
                     />
                   </div>
                   <div className="campo">
-                    <label>Brano completo (facoltativo)</label>
+                    <label>Brano completo</label>
                     <input
                       value={b.completo ?? ''}
                       onChange={(e) =>
@@ -466,7 +536,7 @@ function ModificaMusica({ dati, setDati }: Props) {
           </div>
           <button
             className="btn btn--primario"
-            style={{ marginTop: 16 }}
+            style={{ marginTop: 14 }}
             onClick={() =>
               setDati((d) => ({
                 ...d,
@@ -476,13 +546,7 @@ function ModificaMusica({ dati, setDati }: Props) {
                         ...cc,
                         brani: [
                           ...cc.brani,
-                          {
-                            id: nuovoId('brano'),
-                            titolo: 'Nuovo brano',
-                            artista: '',
-                            indizio1: '',
-                            indizio2: '',
-                          },
+                          { id: nuovoId('brano'), titolo: 'Nuovo brano', artista: '', indizio1: '', indizio2: '' },
                         ],
                       }
                     : cc,
@@ -503,8 +567,13 @@ function BackupRipristino({
   dati,
   setDati,
   ripristina,
-}: Props & { ripristina: () => void }) {
+  setAnnullabile,
+}: Props & {
+  ripristina: () => void
+  setAnnullabile: (v: { dati: DatiGiochi; cosa: string } | null) => void
+}) {
   const inputFile = useRef<HTMLInputElement>(null)
+  const conferma = useConferma()
   const [messaggio, setMessaggio] = useState('')
 
   const esporta = () => {
@@ -519,11 +588,18 @@ function BackupRipristino({
 
   const importa = async (file: File) => {
     try {
-      const testo = await file.text()
-      const nuovi = JSON.parse(testo) as DatiGiochi
+      const nuovi = JSON.parse(await file.text()) as DatiGiochi
       if (!nuovi.notizie || !nuovi.immagini || !nuovi.qdcp || !nuovi.musica) {
         throw new Error('Struttura non riconosciuta')
       }
+      const ok = await conferma({
+        titolo: 'Sostituire tutti i contenuti?',
+        messaggio: `Il file contiene ${nuovi.notizie.length} notizie, ${nuovi.qdcp.length} parole e ${nuovi.musica.reduce((n, c) => n + c.brani.length, 0)} brani. I contenuti attuali verranno sostituiti, ma potrai annullare subito dopo.`,
+        conferma: 'Sostituisci',
+        pericolo: true,
+      })
+      if (!ok) return
+      setAnnullabile({ dati, cosa: 'i contenuti precedenti (import JSON)' })
       setDati(() => nuovi)
       setMessaggio('Contenuti importati correttamente.')
     } catch (e) {
@@ -541,7 +617,7 @@ function BackupRipristino({
   return (
     <div className="card">
       <div className="card-titolo">Backup e ripristino</div>
-      <p className="avviso" style={{ marginBottom: 16 }}>
+      <p className="avviso" style={{ marginBottom: 14 }}>
         Contenuti attuali: <b>{conteggi}</b>. Sono salvati nel browser di questo computer: esportali
         se vuoi portarli altrove o tenerne una copia.
       </p>
@@ -554,12 +630,20 @@ function BackupRipristino({
         </button>
         <button
           className="btn btn--ko"
-          onClick={() => {
-            if (confirm('Ripristinare i contenuti originali del PDF? Le modifiche andranno perse.')) {
+          onClick={() =>
+            void conferma({
+              titolo: 'Ripristinare i contenuti del PDF?',
+              messaggio:
+                'Tutte le modifiche fatte da Gestione verranno sostituite dalla versione trascritta da lista-giochi.pdf. Potrai annullare subito dopo.',
+              conferma: 'Ripristina',
+              pericolo: true,
+            }).then((ok) => {
+              if (!ok) return
+              setAnnullabile({ dati, cosa: 'i contenuti precedenti (ripristino PDF)' })
               ripristina()
               setMessaggio('Contenuti riportati alla versione del PDF.')
-            }
-          }}
+            })
+          }
         >
           Ripristina contenuti del PDF
         </button>
@@ -571,16 +655,16 @@ function BackupRipristino({
         style={{ display: 'none' }}
         onChange={(e) => {
           const f = e.target.files?.[0]
-          if (f) importa(f)
+          if (f) void importa(f)
           e.target.value = ''
         }}
       />
       {messaggio && (
-        <p className="avviso" style={{ marginTop: 16 }}>
+        <p className="avviso" style={{ marginTop: 14 }}>
           {messaggio}
         </p>
       )}
-      <p className="avviso" style={{ marginTop: 16 }}>
+      <p className="avviso" style={{ marginTop: 14 }}>
         <b>Contenuti di partenza:</b> {DATI_INIZIALI.notizie.length} notizie,{' '}
         {DATI_INIZIALI.qdcp.length} parole QDCP,{' '}
         {DATI_INIZIALI.musica.reduce((n, c) => n + c.brani.length, 0)} brani in{' '}

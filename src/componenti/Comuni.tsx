@@ -31,7 +31,8 @@ export function IntestazioneGioco({
     <div className="intestazione-gioco">
       <div>
         <h2>
-          {numero}. {titolo}
+          <span className="numero-gioco">{numero}</span>
+          {titolo}
         </h2>
         {sottotitolo && <div className="sottotitolo">{sottotitolo}</div>}
       </div>

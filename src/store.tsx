@@ -91,6 +91,32 @@ export function ProviderStore({ children }: { children: ReactNode }) {
   useEffect(() => scrivi(CHIAVE_DATI, dati), [dati])
   useEffect(() => scrivi(CHIAVE_SESSIONE, sessione), [sessione])
 
+  /**
+   * Allinea le finestre aperte sulla stessa app. L'evento `storage` scatta solo
+   * negli ALTRI documenti, mai in quello che ha scritto: nessun rischio di ciclo.
+   * E' cosi' che la finestra di proiezione segue la dashboard senza altra idraulica.
+   */
+  useEffect(() => {
+    const suStorage = (e: StorageEvent) => {
+      if (e.key === CHIAVE_DATI && e.newValue) {
+        try {
+          setDatiState(JSON.parse(e.newValue) as DatiGiochi)
+        } catch {
+          /* scrittura parziale: la prossima notifica rimette in pari */
+        }
+      }
+      if (e.key === CHIAVE_SESSIONE) {
+        try {
+          setSessione(e.newValue ? (JSON.parse(e.newValue) as Sessione) : null)
+        } catch {
+          /* idem */
+        }
+      }
+    }
+    window.addEventListener('storage', suStorage)
+    return () => window.removeEventListener('storage', suStorage)
+  }, [])
+
   const setDati = useCallback((aggiorna: (d: DatiGiochi) => DatiGiochi) => {
     setDatiState((d) => aggiorna(d))
   }, [])

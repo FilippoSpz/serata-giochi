@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
+import { useConferma } from '../componenti/Conferma'
 import type { Rotta } from '../rotte'
 import { COLORI_SQUADRE, useStore } from '../store'
 import type { Giocatore } from '../tipi'
@@ -10,6 +11,7 @@ const PREDEFINITI = 8
 
 export function Setup({ vaiA }: { vaiA: (r: Rotta) => void }) {
   const { sessione, avviaSessione, aggiornaSessione, chiudiSessione } = useStore()
+  const conferma = useConferma()
 
   const [nomiSquadre, setNomiSquadre] = useState<[string, string]>(() =>
     sessione
@@ -65,12 +67,18 @@ export function Setup({ vaiA }: { vaiA: (r: Rotta) => void }) {
     vaiA('home')
   }
 
-  const ricomincia = () => {
-    if (!confirm('Azzerare punteggi e avanzamento di tutti e quattro i giochi?')) return
-    chiudiSessione()
-    avviaSessione(nomi, nomiSquadre)
-    vaiA('home')
-  }
+  const ricomincia = () =>
+    void conferma({
+      titolo: 'Azzerare la serata?',
+      messaggio: `Verranno cancellati ${sessione?.eventi.length ?? 0} punti assegnati e l’avanzamento di tutti e quattro i giochi. Squadre e giocatori restano. L’operazione non è annullabile.`,
+      conferma: 'Azzera tutto',
+      pericolo: true,
+    }).then((ok) => {
+      if (!ok) return
+      chiudiSessione()
+      avviaSessione(nomi, nomiSquadre)
+      vaiA('home')
+    })
 
   return (
     <>
@@ -106,7 +114,24 @@ export function Setup({ vaiA }: { vaiA: (r: Rotta) => void }) {
         <div className="riga-bottoni" style={{ marginBottom: 16 }}>
           <button
             className="btn btn--piccolo"
-            onClick={() => cambiaNumero(Math.max(MIN_GIOCATORI, nomi.length - 1))}
+            onClick={() => {
+              const ultimo = nomi.length - 1
+              const puntiSuoi = sessione
+                ? sessione.eventi
+                    .filter((e) => e.giocatoreId === sessione.giocatori[ultimo]?.id)
+                    .reduce((t, e) => t + e.punti, 0)
+                : 0
+              if (puntiSuoi === 0) {
+                cambiaNumero(Math.max(MIN_GIOCATORI, ultimo))
+                return
+              }
+              void conferma({
+                titolo: `Rimuovere ${nomi[ultimo]}?`,
+                messaggio: `Ha ${puntiSuoi} punti individuali. Restano a bilancio della squadra, ma non saranno più attribuiti a nessuno.`,
+                conferma: 'Rimuovi',
+                pericolo: true,
+              }).then((ok) => ok && cambiaNumero(Math.max(MIN_GIOCATORI, ultimo)))
+            }}
             disabled={nomi.length <= MIN_GIOCATORI}
           >
             − Rimuovi
