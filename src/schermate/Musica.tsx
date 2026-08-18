@@ -1,19 +1,12 @@
 import { useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
-import {
-  AnnullaUltimo,
-  IntestazioneGioco,
-  NavigazionePassi,
-  Regolamento,
-  ServeSessione,
-  StriscaAvanzamento,
-} from '../componenti/Comuni'
+import { AnnullaUltimo, IntestazioneGioco, Regolamento, ServeSessione } from '../componenti/Comuni'
 import { LettoreAudio } from '../componenti/LettoreAudio'
 import type { ApiLettore } from '../componenti/LettoreAudio'
-import { REGOLE } from '../dati'
+import { REGOLE, SECONDI_INDIZIO } from '../dati'
 import type { Rotta } from '../rotte'
 import { assegnazioneDi, formattaPunti, useStore, vociAssegnate } from '../store'
-import type { Giocatore } from '../tipi'
+import type { Brano, Giocatore } from '../tipi'
 
 /** Primo giocatore non eliminato a partire da `da`, girando in tondo. */
 function indiceDiTurno(giocatori: Giocatore[], da: number, eliminati: string[]) {
@@ -25,56 +18,50 @@ function indiceDiTurno(giocatori: Giocatore[], da: number, eliminati: string[]) 
   return -1
 }
 
+const MOLTIPLICATORI = [
+  { valore: 1, etichetta: 'pieno' },
+  { valore: 0.5, etichetta: '½' },
+  { valore: 0.25, etichetta: '¼' },
+]
+
 export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
   const { dati, sessione, aggiornaSessione, assegnaPunti, annullaEvento } = useStore()
-  const indizio1 = useRef<ApiLettore>(null)
-  const indizio2 = useRef<ApiLettore>(null)
-
+  const lettori = useRef(new Map<string, ApiLettore | null>())
   const stato = sessione?.musica
-  const sbloccato = stato?.indizioSbloccato ?? 1
 
   /**
-   * Spazio e R agiscono sull'indizio piu' avanzato disponibile: durante il gioco
-   * si guarda il tavolo, non lo schermo. Disattivate mentre si scrive in un campo.
+   * Spazio e R agiscono sul brano evidenziato: durante il gioco si guarda il
+   * tavolo, non lo schermo. Disattivate mentre si scrive in un campo.
    */
+  const branoAttivo = stato ? `${stato.categoriaIndex}-${stato.branoIndex}` : ''
   useEffect(() => {
     const suTasto = (e: KeyboardEvent) => {
       const bersaglio = e.target as HTMLElement | null
       if (bersaglio?.closest('input, textarea, select, [contenteditable="true"]')) return
-      const corrente = sbloccato >= 2 ? indizio2.current : indizio1.current
+      const corrente = lettori.current.get(branoAttivo)
+      if (!corrente) return
       if (e.code === 'Space') {
         e.preventDefault()
-        // Dopo un click il bottone resta col fuoco e si riattiverebbe con lo
-        // spazio: lo togliamo, cosi' spazio vuol dire sempre e solo "play".
+        // Il bottone appena cliccato trattiene il fuoco e si riattiverebbe
+        // con lo spazio: glielo togliamo, cosi' spazio vuol dire solo "play".
         const attivo = document.activeElement
         if (attivo instanceof HTMLButtonElement) attivo.blur()
-        corrente?.alterna()
+        corrente.alterna()
       } else if (e.key === 'r' || e.key === 'R') {
         e.preventDefault()
-        corrente?.riavvia()
-      } else if (e.key === 'ArrowRight' && e.shiftKey) {
-        e.preventDefault()
-        corrente?.cerca(2)
-      } else if (e.key === 'ArrowLeft' && e.shiftKey) {
-        e.preventDefault()
-        corrente?.cerca(-2)
+        corrente.riavvia()
       }
     }
     window.addEventListener('keydown', suTasto)
     return () => window.removeEventListener('keydown', suTasto)
-  }, [sbloccato])
+  }, [branoAttivo])
 
   if (!sessione || !stato) return <ServeSessione vaiASetup={() => vaiA('setup')} />
   if (dati.musica.length === 0)
     return <div className="vuoto card">Nessuna categoria musicale: aggiungine una da Gestione.</div>
 
   const categoria = dati.musica[Math.min(stato.categoriaIndex, dati.musica.length - 1)]
-  const brano = categoria.brani[Math.min(stato.branoIndex, categoria.brani.length - 1)]
   const assegnati = vociAssegnate(sessione, 'musica')
-  const assegnazione = assegnazioneDi(sessione, 'musica', brano.id)
-  const chiPreseIlPunto = assegnazione
-    ? sessione.giocatori.find((g) => g.id === assegnazione.giocatoreId)
-    : undefined
 
   const idxTurno = indiceDiTurno(sessione.giocatori, stato.turnoIndex, stato.eliminati)
   const giocatore = idxTurno >= 0 ? sessione.giocatori[idxTurno] : null
@@ -82,274 +69,261 @@ export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
     ? sessione.squadre.find((s) => s.id === giocatore.squadraId)!
     : sessione.squadre[0]
 
-  const valoreTitolo = 1 * stato.moltiplicatore
-  const valorePieno = 2 * stato.moltiplicatore
-  const ultimoBrano =
-    stato.categoriaIndex === dati.musica.length - 1 &&
-    stato.branoIndex === categoria.brani.length - 1
-
   const patch = (p: Partial<typeof stato>) =>
     aggiornaSessione((s) => ({ ...s, musica: { ...s.musica, ...p } }))
 
-  const prossimoIndice = (eliminati = stato.eliminati) =>
-    idxTurno < 0 ? 0 : indiceDiTurno(sessione.giocatori, idxTurno + 1, eliminati)
+  const moltiplicatoreDi = (branoId: string) => stato.moltiplicatori?.[branoId] ?? 1
 
-  const indovina = (conArtista: boolean) => {
+  const impostaMoltiplicatore = (branoId: string, valore: number) =>
+    patch({ moltiplicatori: { ...(stato.moltiplicatori ?? {}), [branoId]: valore } })
+
+  const avanzaTurno = () =>
+    patch({
+      turnoIndex: idxTurno < 0 ? 0 : indiceDiTurno(sessione.giocatori, idxTurno + 1, stato.eliminati),
+    })
+
+  const indovina = (brano: Brano, conArtista: boolean) => {
     if (!giocatore) return
+    const m = moltiplicatoreDi(brano.id)
     assegnaPunti({
       gioco: 'musica',
       voceId: brano.id,
       etichetta: `${categoria.nome} · ${brano.titolo}${conArtista ? ' + artista' : ''} — ${giocatore.nome}`,
       squadraId: giocatore.squadraId,
       giocatoreId: giocatore.id,
-      punti: conArtista ? valorePieno : valoreTitolo,
+      punti: (conArtista ? 2 : 1) * m,
     })
-    patch({ rivelato: true })
+    avanzaTurno()
   }
 
   const sbaglia = () => {
     if (!giocatore) return
     const eliminati = [...new Set([...stato.eliminati, giocatore.id])]
-    patch({ eliminati, turnoIndex: Math.max(0, prossimoIndice(eliminati)) })
-  }
-
-  const cambiaBrano = (nuovoIndice: number, moltiplicatore: number, avanzaTurno: boolean) =>
     patch({
-      branoIndex: nuovoIndice,
-      moltiplicatore,
-      indizioSbloccato: 1,
-      rivelato: false,
-      turnoIndex: avanzaTurno ? Math.max(0, prossimoIndice()) : stato.turnoIndex,
+      eliminati,
+      turnoIndex: Math.max(0, idxTurno < 0 ? 0 : indiceDiTurno(sessione.giocatori, idxTurno + 1, eliminati)),
     })
+  }
 
   const cambiaCategoria = (i: number) =>
     patch({
       categoriaIndex: i,
       branoIndex: 0,
-      moltiplicatore: 1,
-      indizioSbloccato: 1,
-      rivelato: false,
+      moltiplicatori: {},
       eliminati: [], // l'eliminazione vale solo per la categoria in corso
     })
-
-  const avanti = () => {
-    if (stato.branoIndex < categoria.brani.length - 1) cambiaBrano(stato.branoIndex + 1, 1, true)
-    else if (stato.categoriaIndex < dati.musica.length - 1) cambiaCategoria(stato.categoriaIndex + 1)
-    else vaiA('classifica')
-  }
-
-  const indietro = () => {
-    if (stato.branoIndex > 0) cambiaBrano(stato.branoIndex - 1, 1, false)
-    else if (stato.categoriaIndex > 0) cambiaCategoria(stato.categoriaIndex - 1)
-  }
 
   return (
     <>
       <IntestazioneGioco
         numero={4}
         titolo="Musica"
-        sottotitolo="Giocatore singolo, nell’ordine in cui siete seduti. Titolo 1 punto, artista 1 punto."
-        contatore={`Brano ${stato.branoIndex + 1} di ${categoria.brani.length} · ${categoria.nome}`}
+        sottotitolo={`Giocatore singolo, nell’ordine in cui siete seduti. Ogni indizio dura ${SECONDI_INDIZIO} secondi. Titolo 1 punto, artista 1 punto.`}
+        contatore={`${categoria.brani.filter((b) => assegnati.has(b.id)).length} di ${categoria.brani.length} · ${categoria.nome}`}
       />
       <Regolamento voci={REGOLE.musica} />
 
       <div className="selettore-categorie" style={{ marginTop: 14 }}>
         {dati.musica.map((c, i) => {
-          const completa = c.brani.every((b) => assegnati.has(b.id))
+          const fatti = c.brani.filter((b) => assegnati.has(b.id)).length
           return (
             <button
               key={c.id}
-              className={`chip${completa ? ' chip--fatto' : ''}`}
+              className={`chip${fatti === c.brani.length ? ' chip--fatto' : ''}`}
               aria-pressed={i === stato.categoriaIndex}
               onClick={() => cambiaCategoria(i)}
             >
-              {c.nome}
+              {c.nome}{' '}
+              <span style={{ opacity: 0.6 }}>
+                {fatti}/{c.brani.length}
+              </span>
             </button>
           )
         })}
       </div>
 
-      <StriscaAvanzamento
-        voci={categoria.brani.map((b) => ({ id: b.id, etichetta: b.titolo }))}
-        indiceCorrente={stato.branoIndex}
-        assegnate={assegnati}
-        onVaiA={(i) => cambiaBrano(i, 1, false)}
-      />
-
-      {giocatore ? (
-        <div className="turno" style={{ '--colore': squadra.colore } as CSSProperties}>
-          <div>
-            <div className="etichetta">Tocca a</div>
-            <div className="nome">{giocatore.nome}</div>
-            <div className="squadra">{squadra.nome}</div>
-          </div>
-          <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-            <div className="etichetta">Vale ora</div>
-            <div className="nome" style={{ color: 'var(--accento)' }}>
-              {formattaPunti(valorePieno)}
+      {/* Barra del turno: resta appiccicata in alto mentre si scorre l'elenco. */}
+      <div className="barra-turno" style={{ '--colore': squadra.colore } as CSSProperties}>
+        {giocatore ? (
+          <>
+            <div>
+              <div className="etichetta">Tocca a</div>
+              <div className="nome">{giocatore.nome}</div>
             </div>
-            <div className="squadra" style={{ color: 'var(--testo-fioco)' }}>
-              {formattaPunti(valoreTitolo)} titolo + {formattaPunti(valoreTitolo)} artista
+            <span className="squadra-turno">{squadra.nome}</span>
+            <div className="riga-bottoni" style={{ marginLeft: 'auto' }}>
+              <button className="btn btn--piccolo btn--ko" onClick={sbaglia}>
+                Sbaglia → esce dalla categoria
+              </button>
+              <button className="btn btn--piccolo btn--fantasma" onClick={avanzaTurno}>
+                Passa al prossimo →
+              </button>
             </div>
-          </div>
-        </div>
-      ) : (
-        <div className="avviso avviso--accento" style={{ marginBottom: 14 }}>
-          Tutti i giocatori sono usciti da questa categoria.{' '}
-          <button className="btn btn--piccolo" onClick={() => patch({ eliminati: [] })}>
-            Riammetti tutti
-          </button>
-        </div>
-      )}
+          </>
+        ) : (
+          <>
+            <span>Tutti i giocatori sono usciti da questa categoria.</span>
+            <button
+              className="btn btn--piccolo"
+              style={{ marginLeft: 'auto' }}
+              onClick={() => patch({ eliminati: [] })}
+            >
+              Riammetti tutti
+            </button>
+          </>
+        )}
+      </div>
 
       <div className="giro-giocatori">
         {sessione.giocatori.map((g, i) => {
           const sq = sessione.squadre.find((s) => s.id === g.squadraId)!
           const eliminato = stato.eliminati.includes(g.id)
           return (
-            <span
+            <button
               key={g.id}
               className={`gettone-giocatore${i === idxTurno ? ' gettone-giocatore--attivo' : ''}${
                 eliminato ? ' gettone-giocatore--eliminato' : ''
               }`}
-              title={eliminato ? 'Fuori per questa categoria' : sq.nome}
+              title={eliminato ? 'Fuori per questa categoria — clicca per riammettere' : `Passa il turno a ${g.nome}`}
+              onClick={() =>
+                eliminato
+                  ? patch({ eliminati: stato.eliminati.filter((x) => x !== g.id) })
+                  : patch({ turnoIndex: i })
+              }
             >
               <i style={{ background: sq.colore }} />
               {g.nome}
-            </span>
+            </button>
           )
         })}
       </div>
 
-      <div className="card">
-        <LettoreAudio ref={indizio1} src={brano.indizio1} etichetta="Indizio 1" />
-        <LettoreAudio
-          ref={indizio2}
-          src={brano.indizio2}
-          etichetta="Indizio 2"
-          bloccatoCon={sbloccato < 2 ? 'Si sblocca dimezzando il punteggio' : undefined}
-        />
-        {stato.rivelato && brano.completo && (
-          <LettoreAudio src={brano.completo} etichetta="Completo" compatto />
-        )}
+      <div className="elenco-brani">
+        {categoria.brani.map((brano, i) => {
+          const assegnazione = assegnazioneDi(sessione, 'musica', brano.id)
+          const chi = assegnazione
+            ? sessione.giocatori.find((g) => g.id === assegnazione.giocatoreId)
+            : undefined
+          const m = moltiplicatoreDi(brano.id)
+          const corrente = i === stato.branoIndex
+          const chiave = `${stato.categoriaIndex}-${i}`
 
-        <div className="scorciatoie">
-          <span>
-            <kbd>Spazio</kbd>play / pausa
-          </span>
-          <span>
-            <kbd>R</kbd>da capo
-          </span>
-          <span>
-            <kbd>⇧ ←</kbd>
-            <kbd>⇧ →</kbd>2 secondi
-          </span>
-        </div>
-
-        {stato.rivelato && (
-          <div className="soluzione-brano">
-            <div className="titolo">{brano.titolo}</div>
-            <div className="artista">{brano.artista}</div>
-          </div>
-        )}
-
-        {assegnazione && (
-          <div className="assegna">
-            <div className="card-titolo">
-              Assegnato a{' '}
-              <span style={{ color: 'var(--accento)' }}>{chiPreseIlPunto?.nome ?? '—'}</span>{' '}
-              <span style={{ color: 'var(--testo-fioco)', fontWeight: 500, textTransform: 'none' }}>
-                — {formattaPunti(assegnazione.punti)} punti
-              </span>
-            </div>
-            <div className="riga-bottoni">
-              <button className="btn btn--fantasma" onClick={() => annullaEvento(assegnazione.id)}>
-                ↩ Togli il punto e riassegna
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!assegnazione && giocatore && (
-          <div className="assegna">
-            <div className="card-titolo">{giocatore.nome} risponde</div>
-            <div className="bottoni-squadre">
-              <button
-                className="btn-squadra"
-                style={{ '--colore': 'var(--ok)' } as CSSProperties}
-                onClick={() => indovina(false)}
-              >
-                <span>Solo il titolo</span>
-                <span className="premio">+{formattaPunti(valoreTitolo)}</span>
-              </button>
-              <button
-                className="btn-squadra"
-                style={{ '--colore': 'var(--accento)' } as CSSProperties}
-                onClick={() => indovina(true)}
-              >
-                <span>Titolo + artista</span>
-                <span className="premio">+{formattaPunti(valorePieno)}</span>
-              </button>
-            </div>
-            <div className="riga-bottoni" style={{ marginTop: 10 }}>
-              <button className="btn btn--ko" onClick={sbaglia}>
-                Sbaglia → esce dalla categoria
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="assegna">
-          <div className="card-titolo">Chi riceve il brano</div>
-          <div className="riga-bottoni">
-            <button
-              className="btn"
-              disabled={sbloccato >= 2}
-              onClick={() => patch({ indizioSbloccato: 2, moltiplicatore: stato.moltiplicatore / 2 })}
+          return (
+            <div
+              key={brano.id}
+              className={`brano${corrente ? ' brano--corrente' : ''}${
+                assegnazione ? ' brano--assegnato' : ''
+              }`}
+              onFocus={() => !corrente && patch({ branoIndex: i })}
             >
-              Ascolta i 10s successivi · dimezza a {formattaPunti(valorePieno / 2)}
-            </button>
-            <button
-              className="btn"
-              disabled={stato.branoIndex >= categoria.brani.length - 1}
-              onClick={() => cambiaBrano(stato.branoIndex + 1, stato.moltiplicatore / 2, false)}
-            >
-              Passa al brano successivo · dimezza a {formattaPunti(valorePieno / 2)}
-            </button>
-          </div>
-        </div>
+              <button
+                className="brano-testa"
+                onClick={() => patch({ branoIndex: i })}
+                title="Rendi questo il brano attivo per le scorciatoie"
+              >
+                <span className="brano-numero">{assegnazione ? '✓' : i + 1}</span>
+                <span className="brano-titoli">
+                  <span className="brano-titolo">{brano.titolo}</span>
+                  <span className="brano-artista">{brano.artista}</span>
+                </span>
+              </button>
 
-        <div className="riga-bottoni" style={{ marginTop: 12 }}>
-          <button className="btn btn--fantasma" onClick={() => patch({ rivelato: !stato.rivelato })}>
-            {stato.rivelato ? 'Nascondi soluzione' : 'Rivela titolo e artista'}
-          </button>
-          <button
-            className="btn btn--fantasma"
-            onClick={() => patch({ moltiplicatore: 1, indizioSbloccato: 1 })}
-            disabled={stato.moltiplicatore === 1 && sbloccato === 1}
-          >
-            Ripristina valore pieno
-          </button>
-          {stato.eliminati.length > 0 && (
-            <button className="btn btn--fantasma" onClick={() => patch({ eliminati: [] })}>
-              Riammetti tutti ({stato.eliminati.length})
-            </button>
-          )}
-          <AnnullaUltimo />
-        </div>
+              <div className="brano-lettori">
+                <LettoreAudio
+                  ref={(api) => {
+                    lettori.current.set(chiave, api)
+                  }}
+                  src={brano.indizio1}
+                  etichetta="Indizio 1"
+                  compatto
+                />
+                <LettoreAudio src={brano.indizio2} etichetta="Indizio 2" compatto />
+                {brano.completo && (
+                  <LettoreAudio src={brano.completo} etichetta="Completo" compatto />
+                )}
+              </div>
+
+              <div className="brano-punti">
+                {assegnazione ? (
+                  <div className="brano-esito">
+                    <span className="brano-vincitore">{chi?.nome ?? '—'}</span>
+                    <span className="brano-valore">+{formattaPunti(assegnazione.punti)}</span>
+                    <button
+                      className="btn btn--piccolo btn--fantasma"
+                      onClick={() => annullaEvento(assegnazione.id)}
+                      title="Togli il punto e riassegna"
+                    >
+                      ↩ Togli
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="brano-moltiplicatore">
+                      {MOLTIPLICATORI.map((mm) => (
+                        <button
+                          key={mm.valore}
+                          className={`gradino${m === mm.valore ? ' gradino--scelto' : ''}`}
+                          onClick={() => impostaMoltiplicatore(brano.id, mm.valore)}
+                          title={`Vale ${formattaPunti(2 * mm.valore)} punti al massimo`}
+                        >
+                          {mm.etichetta}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="riga-bottoni">
+                      <button
+                        className="btn btn--piccolo btn--ok"
+                        disabled={!giocatore}
+                        onClick={() => indovina(brano, false)}
+                      >
+                        Titolo +{formattaPunti(m)}
+                      </button>
+                      <button
+                        className="btn btn--piccolo btn--primario"
+                        disabled={!giocatore}
+                        onClick={() => indovina(brano, true)}
+                      >
+                        Titolo + artista +{formattaPunti(2 * m)}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )
+        })}
       </div>
 
-      <NavigazionePassi
-        onIndietro={indietro}
-        onAvanti={avanti}
-        disabilitaIndietro={stato.categoriaIndex === 0 && stato.branoIndex === 0}
-        etichettaAvanti={ultimoBrano ? 'Vai alla classifica finale →' : 'Brano successivo →'}
-        centro={
-          <span style={{ color: 'var(--testo-fioco)', fontSize: 12.5 }}>
-            {assegnati.size} / {dati.musica.reduce((n, c) => n + c.brani.length, 0)} brani
+      <div className="navigazione-passi">
+        <button
+          className="btn btn--fantasma"
+          onClick={() => cambiaCategoria(Math.max(0, stato.categoriaIndex - 1))}
+          disabled={stato.categoriaIndex === 0}
+        >
+          ← Categoria precedente
+        </button>
+        <span style={{ color: 'var(--testo-fioco)', fontSize: 12.5 }}>
+          {assegnati.size} / {dati.musica.reduce((n, c) => n + c.brani.length, 0)} brani ·{' '}
+          <span className="scorciatoie-inline">
+            <kbd>Spazio</kbd> play <kbd>R</kbd> da capo
           </span>
-        }
-      />
+        </span>
+        <div className="riga-bottoni">
+          <AnnullaUltimo />
+          <button
+            className="btn"
+            onClick={() =>
+              stato.categoriaIndex === dati.musica.length - 1
+                ? vaiA('classifica')
+                : cambiaCategoria(stato.categoriaIndex + 1)
+            }
+          >
+            {stato.categoriaIndex === dati.musica.length - 1
+              ? 'Classifica finale →'
+              : 'Categoria successiva →'}
+          </button>
+        </div>
+      </div>
     </>
   )
 }

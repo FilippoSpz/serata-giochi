@@ -544,6 +544,12 @@ export const DATI_INIZIALI: DatiGiochi = {
   ],
 }
 
+/**
+ * Durata reale di ogni spezzone audio. Il PDF diceva 10 secondi, ma i file
+ * forniti ne durano 5: comanda il file, non il documento.
+ */
+export const SECONDI_INDIZIO = 5
+
 /** Regolamenti mostrati in testa a ogni gioco, trascritti dal PDF. */
 export const REGOLE = {
   notizie: [
@@ -564,9 +570,9 @@ export const REGOLE = {
   ],
   musica: [
     'Le squadre si siedono al tavolo alternandosi: A, B, A, B, e così via.',
-    'Il primo giocatore ascolta i primi 10 secondi del brano. Se indovina il titolo prende 1 punto; se indovina anche l’artista ne prende un altro.',
+    'Il primo giocatore ascolta i primi 5 secondi del brano. Se indovina il titolo prende 1 punto; se indovina anche l’artista ne prende un altro.',
     'Se sbaglia, esce dalla categoria in corso e il brano passa al giocatore successivo.',
-    'Chi riceve il brano ha due possibilità: ascoltare i 10 secondi successivi, dimezzando il punteggio, oppure passare direttamente al brano successivo — anche in questo caso il punteggio si dimezza.',
+    'Chi riceve il brano ha due possibilità: ascoltare i 5 secondi successivi, dimezzando il punteggio, oppure passare direttamente al brano successivo — anche in questo caso il punteggio si dimezza.',
     'Quando un brano viene indovinato si passa al giocatore successivo con un brano nuovo.',
     'Quattro categorie da sei brani ciascuna, per un totale di 24 brani.',
   ],

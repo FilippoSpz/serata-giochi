@@ -8,6 +8,7 @@ import {
   StriscaAvanzamento,
   ValoreAttuale,
 } from '../componenti/Comuni'
+import { ImmagineScalata } from '../componenti/ImmagineScalata'
 import { REGOLE } from '../dati'
 import type { Rotta } from '../rotte'
 import { assegnazioneDi, useStore, vociAssegnate } from '../store'
@@ -129,7 +130,11 @@ export function Immagini({ vaiA }: { vaiA: (r: Rotta) => void }) {
 
         <div className="palco">
           {immagineMostrata ? (
-            <img src={immagineMostrata} alt={stato.rivelata ? voce.nome : `Indizio ${mostrate}`} />
+            <ImmagineScalata
+              src={immagineMostrata}
+              alt={stato.rivelata ? voce.nome : `Indizio ${mostrate}`}
+              fattoreMax={stato.rivelata && voce.reveal ? 6 : 4}
+            />
           ) : (
             <div className="segnaposto">
               Immagine non trovata.

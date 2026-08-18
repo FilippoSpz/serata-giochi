@@ -1,5 +1,5 @@
 import type { Rotta } from '../rotte'
-import { formattaPunti, punteggioSquadra, useStore } from '../store'
+import { formattaPunti, punteggioSquadra, useStore, vociAssegnate } from '../store'
 
 const GIOCHI: { rotta: Rotta; numero: number; titolo: string; descrizione: string }[] = [
   {
@@ -35,17 +35,14 @@ const GIOCHI: { rotta: Rotta; numero: number; titolo: string; descrizione: strin
 export function Home({ vaiA }: { vaiA: (r: Rotta) => void }) {
   const { dati, sessione } = useStore()
 
+  const fatti = (gioco: 'notizie' | 'immagini' | 'qdcp' | 'musica') =>
+    sessione ? vociAssegnate(sessione, gioco).size : 0
+
   const avanzamento: Record<string, string> = {
-    notizie: `${sessione?.notizie.chiuse.length ?? 0} / ${dati.notizie.length} notizie`,
-    immagini: `${sessione?.immagini.chiuse.length ?? 0} / ${dati.immagini.reduce(
-      (n, c) => n + c.voci.length,
-      0,
-    )} immagini`,
-    qdcp: `${sessione?.qdcp.chiuse.length ?? 0} / ${dati.qdcp.length} parole`,
-    musica: `${sessione?.musica.chiusi.length ?? 0} / ${dati.musica.reduce(
-      (n, c) => n + c.brani.length,
-      0,
-    )} brani`,
+    notizie: `${fatti('notizie')} / ${dati.notizie.length} notizie`,
+    immagini: `${fatti('immagini')} / ${dati.immagini.reduce((n, c) => n + c.voci.length, 0)} immagini`,
+    qdcp: `${fatti('qdcp')} / ${dati.qdcp.length} parole`,
+    musica: `${fatti('musica')} / ${dati.musica.reduce((n, c) => n + c.brani.length, 0)} brani`,
   }
 
   return (

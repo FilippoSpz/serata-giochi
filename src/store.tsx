@@ -34,22 +34,19 @@ function datiValidi(v: unknown): boolean {
   return eLista(d.notizie) && eLista(d.immagini) && eLista(d.qdcp) && eLista(d.musica)
 }
 
-/** Stati di avanzamento di partenza, usati anche per rattoppare sessioni incomplete. */
-const AVANZAMENTO_INIZIALE = {
-  notizie: { indice: 0, tentativi: [], rivelata: false, chiuse: [] },
-  immagini: { categoriaIndex: 0, voceIndex: 0, immagineIndex: 1, rivelata: false, chiuse: [] },
-  qdcp: { indice: 0, indiziLetti: 1, rivelata: false, chiuse: [] },
-  musica: {
-    categoriaIndex: 0,
-    branoIndex: 0,
-    turnoIndex: 0,
-    moltiplicatore: 1,
-    indizioSbloccato: 1,
-    rivelato: false,
-    eliminati: [],
-    chiusi: [],
-  },
-} as const
+/**
+ * Stati di avanzamento di partenza. E' una funzione, non una costante, perche'
+ * ogni sessione deve avere i propri array: condividerli fra sessioni diverse
+ * sarebbe una trappola silenziosa.
+ */
+function avanzamentoIniziale() {
+  return {
+    notizie: { indice: 0, tentativi: [], rivelata: false, chiuse: [] },
+    immagini: { categoriaIndex: 0, voceIndex: 0, immagineIndex: 1, rivelata: false, chiuse: [] },
+    qdcp: { indice: 0, indiziLetti: 1, rivelata: false, chiuse: [] },
+    musica: { categoriaIndex: 0, branoIndex: 0, turnoIndex: 0, moltiplicatori: {}, eliminati: [] },
+  } satisfies Pick<Sessione, 'notizie' | 'immagini' | 'qdcp' | 'musica'>
+}
 
 function sessioneValida(v: unknown): boolean {
   if (v === null) return true
@@ -64,13 +61,14 @@ function sessioneValida(v: unknown): boolean {
  */
 function riparaSessione(s: Sessione | null): Sessione | null {
   if (!s) return null
+  const base = avanzamentoIniziale()
   return {
     ...s,
     eventi: (s.eventi ?? []).filter((e) => e && typeof e.punti === 'number'),
-    notizie: { ...AVANZAMENTO_INIZIALE.notizie, ...s.notizie },
-    immagini: { ...AVANZAMENTO_INIZIALE.immagini, ...s.immagini },
-    qdcp: { ...AVANZAMENTO_INIZIALE.qdcp, ...s.qdcp },
-    musica: { ...AVANZAMENTO_INIZIALE.musica, ...s.musica },
+    notizie: { ...base.notizie, ...s.notizie },
+    immagini: { ...base.immagini, ...s.immagini },
+    qdcp: { ...base.qdcp, ...s.qdcp },
+    musica: { ...base.musica, ...s.musica },
   }
 }
 
@@ -111,19 +109,7 @@ export function creaSessione(nomiGiocatori: string[], nomiSquadre: [string, stri
     squadre,
     giocatori,
     eventi: [],
-    notizie: { indice: 0, tentativi: [], rivelata: false, chiuse: [] },
-    immagini: { categoriaIndex: 0, voceIndex: 0, immagineIndex: 1, rivelata: false, chiuse: [] },
-    qdcp: { indice: 0, indiziLetti: 1, rivelata: false, chiuse: [] },
-    musica: {
-      categoriaIndex: 0,
-      branoIndex: 0,
-      turnoIndex: 0,
-      moltiplicatore: 1,
-      indizioSbloccato: 1,
-      rivelato: false,
-      eliminati: [],
-      chiusi: [],
-    },
+    ...avanzamentoIniziale(),
   }
 }
 

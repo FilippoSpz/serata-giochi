@@ -33,7 +33,7 @@ npm run preview
 | 1 | Notizie false | Squadra | 1 punto a notizia. Si alterna a ogni errore; chi parte cambia a ogni domanda. |
 | 2 | Immagini | Squadra | Si parte dai punti della categoria e si scala di 1 a ogni nuova immagine mostrata (minimo 1). I loghi valgono 1 punto fisso. |
 | 3 | QDCP | Squadra | 4 punti al primo indizio, poi 3, 2, 1 a ogni indizio letto. |
-| 4 | Musica | **Giocatore** | Titolo 1 punto, artista 1 punto. Ogni passaggio dimezza il valore (1 → 0,5 → 0,25). Chi sbaglia esce dalla categoria in corso. |
+| 4 | Musica | **Giocatore** | Titolo 1 punto, artista 1 punto. Il moltiplicatore per brano dimezza il valore (pieno → ½ → ¼). Chi sbaglia esce dalla categoria in corso. |
 
 I primi tre giochi assegnano punti direttamente alla squadra; la musica li assegna al singolo
 giocatore **e** alla sua squadra. Per questo il totale di squadra è sempre ≥ della somma dei suoi
@@ -64,13 +64,12 @@ normalizzando i nomi in slug ASCII (`Persone famose/1. Zendaya/` → `persone/ze
 | Contenuto | Peso | Nel repository |
 |-----------|------|----------------|
 | Immagini (76 file) | ~40 MB | sì |
-| Indizi audio, 2 per brano (48 file) | ~9 MB | sì |
-| Brani completi (24 file) | ~219 MB | **no**, esclusi da `.gitignore` |
+| Indizi audio, 2 per brano da 5 secondi (48 file) | ~9 MB | sì |
+| Brani completi (24 file) | ~219 MB | sì |
 
-I brani completi servono solo al «reveal» dopo che qualcuno ha indovinato. Tenerli fuori dal
-repository è deliberato: 219 MB renderebbero pesante ogni clone e ogni deploy. Se il file manca,
-l'app mostra comunque titolo e artista e lo dice esplicitamente. Per averli in locale basta
-rieseguire `npm run importa-media`.
+Tutto il materiale sta nel repository, quindi la webapp pubblicata e’ autosufficiente. I brani
+completi pesano da soli ~219 MB: se un giorno servisse alleggerire il deploy, escluderli da
+`.gitignore` fa degradare l’app con grazia (mostra titolo e artista senza far partire l’audio).
 
 Se cambi la cartella sorgente:
 

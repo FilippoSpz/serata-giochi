@@ -1045,6 +1045,219 @@ details.regolamento[open] summary {
   margin-right: 4px;
 }
 
+/* --------------------------------------------------------- elenco dei brani */
+.barra-turno {
+  position: sticky;
+  top: 52px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--colore) 45%, transparent);
+  background: color-mix(in srgb, var(--colore) 12%, var(--sfondo));
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.barra-turno .etichetta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.1px;
+  color: var(--testo-fioco);
+  font-weight: 700;
+}
+.barra-turno .nome {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.squadra-turno {
+  font-size: 13px;
+  color: var(--colore);
+  font-weight: 650;
+}
+
+.elenco-brani {
+  display: grid;
+  gap: 8px;
+}
+
+.brano {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.1fr) minmax(260px, 1.6fr) minmax(220px, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--bordo);
+  background: var(--superficie);
+  transition: border-color 0.12s, background 0.12s;
+}
+.brano--corrente {
+  border-color: var(--accento);
+  background: color-mix(in srgb, var(--accento) 7%, var(--superficie));
+}
+.brano--assegnato {
+  opacity: 0.72;
+}
+.brano--assegnato.brano--corrente {
+  opacity: 1;
+}
+
+.brano-testa {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  min-width: 0;
+}
+.brano-numero {
+  flex: 0 0 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--superficie-2);
+  border: 1px solid var(--bordo);
+  color: var(--testo-fioco);
+}
+.brano--assegnato .brano-numero {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+  color: var(--ok);
+}
+.brano--corrente .brano-numero {
+  border-color: var(--accento);
+  color: var(--accento);
+}
+.brano-titoli {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.brano-titolo {
+  font-size: 14.5px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.brano-artista {
+  font-size: 12.5px;
+  color: var(--testo-tenue);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brano-lettori {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.brano-lettori .lettore {
+  padding: 4px 9px;
+  background: var(--sfondo);
+}
+.brano-lettori .lettore + .lettore {
+  margin-top: 0;
+}
+
+.brano-punti {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+.brano-moltiplicatore {
+  display: flex;
+  gap: 3px;
+}
+.gradino {
+  min-width: 34px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--bordo);
+  background: transparent;
+  color: var(--testo-fioco);
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.gradino:hover {
+  color: var(--testo);
+  border-color: var(--bordo-forte);
+}
+.gradino--scelto {
+  border-color: var(--accento);
+  color: var(--accento);
+  background: var(--accento-tenue);
+}
+
+.brano-esito {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.brano-vincitore {
+  font-weight: 650;
+  font-size: 14px;
+}
+.brano-valore {
+  background: color-mix(in srgb, var(--ok) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ok) 45%, transparent);
+  color: var(--ok);
+  border-radius: 5px;
+  padding: 1px 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.scorciatoie-inline kbd {
+  background: var(--superficie-2);
+  border: 1px solid var(--bordo-forte);
+  border-radius: 4px;
+  padding: 0 5px;
+  font-family: inherit;
+  font-size: 10.5px;
+  margin: 0 3px 0 6px;
+}
+
+/* --------------------------------------------------------- riquadro immagine */
+.riquadro-immagine {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.riquadro-immagine img {
+  display: block;
+  border-radius: 4px;
+  /* La misura la calcola il componente: qui solo la rete di sicurezza. */
+  max-width: 100%;
+  max-height: 100%;
+}
+.riquadro-vuoto {
+  color: var(--testo-fioco);
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 .soluzione-brano {
   text-align: center;
   padding: 16px;
@@ -1439,24 +1652,227 @@ body.corpo-proiezione {
   flex-wrap: wrap;
 }
 
+/* ---------------------------------------------------------------- tablet */
+@media (max-width: 900px) {
+  .brano {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+  .brano-testa {
+    grid-column: 1 / -1;
+  }
+  .brano-punti {
+    align-items: stretch;
+  }
+  .brano-esito,
+  .brano-moltiplicatore {
+    justify-content: flex-start;
+  }
+}
+
+/* --------------------------------------------------------------- telefono */
 @media (max-width: 640px) {
   .contenuto {
-    padding: 14px 12px 48px;
+    padding: 12px 10px 40px;
   }
   .card {
-    padding: 14px;
+    padding: 13px;
+  }
+
+  /* Barra: marchio via, navigazione scorrevole in orizzontale. */
+  .topbar {
+    padding: 7px 10px;
+    gap: 8px;
+  }
+  .marchio span:last-child {
+    display: none;
+  }
+  .nav {
+    order: 3;
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav::-webkit-scrollbar {
+    display: none;
+  }
+  .nav button {
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+  .topbar-punteggi {
+    margin-left: auto;
+    width: auto;
+  }
+  .pillola-squadra {
+    padding: 3px 8px;
+    font-size: 12px;
+  }
+
+  .intestazione-gioco h2 {
+    font-size: 19px;
+  }
+  .domanda {
+    font-size: 17px;
+  }
+  .opzione {
+    font-size: 14.5px;
+    padding: 10px 12px;
   }
   .indizio {
     grid-template-columns: 1fr;
     gap: 3px;
   }
-  .topbar-punteggi {
-    margin-left: 0;
-    width: 100%;
+  .indizio .valore {
+    font-size: 16px;
   }
-  .lettore-etichetta,
+  .parola-nascosta {
+    font-size: 26px;
+    letter-spacing: 2px;
+  }
+
+  /* Bersagli comodi al dito: nulla sotto i 40px. */
+  .btn {
+    min-height: 40px;
+  }
+  .btn--piccolo {
+    min-height: 34px;
+    padding: 6px 11px;
+  }
+  .btn-squadra {
+    min-height: 48px;
+  }
+  .bottoni-squadre {
+    grid-template-columns: 1fr;
+  }
+  .passo {
+    width: 36px;
+    height: 36px;
+  }
+  .gettone-giocatore {
+    min-height: 34px;
+  }
+
+  /* Il brano diventa una scheda impilata. */
+  .brano {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .brano-titolo {
+    white-space: normal;
+  }
+  .brano-artista {
+    white-space: normal;
+  }
+  .barra-turno {
+    top: 46px;
+    padding: 9px 11px;
+  }
+  .barra-turno .nome {
+    font-size: 17px;
+  }
+  .barra-turno .riga-bottoni {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+
+  .lettore {
+    gap: 9px;
+    padding: 8px 10px;
+  }
+  .lettore-etichetta {
+    min-width: 0;
+    font-size: 9.5px;
+  }
+  .lettore-tempo {
+    min-width: 0;
+    font-size: 11px;
+  }
   .lettore-tempo-totale {
     display: none;
+  }
+  .lettore-manopola {
+    opacity: 1; /* senza puntatore non c'e' hover: la maniglia serve sempre */
+    width: 14px;
+    height: 14px;
+  }
+  .lettore-barra {
+    height: 28px;
+  }
+
+  .pannello-squadra .totale {
+    font-size: 36px;
+  }
+  .griglia-campi--2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Registro: senza spazio in orizzontale il punteggio e la ✕ finivano
+     tagliati fuori dalla riga. Meglio due righe che informazioni perse. */
+  .voce-registro {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .voce-registro .cosa {
+    white-space: normal;
+    flex: 1 1 100%;
+    order: 3;
+  }
+  .voce-registro .pt {
+    order: 2;
+  }
+
+  /* Le rettifiche restano affiancate: impilate raddoppiavano l'altezza riga. */
+  .tabella td.num {
+    white-space: nowrap;
+  }
+  .tabella th,
+  .tabella td {
+    padding: 8px 6px;
+  }
+  .navigazione-passi {
+    gap: 8px;
+  }
+  .navigazione-passi > * {
+    flex: 1 1 auto;
+  }
+
+  .proiezione {
+    padding: 12px 14px;
+  }
+  .proiezione-categoria {
+    font-size: 12px;
+    letter-spacing: 1.6px;
+  }
+  .proiezione-valore {
+    font-size: 16px;
+  }
+}
+
+/* Su schermi molto stretti la striscia dei passi va a capo senza allargare. */
+@media (max-width: 380px) {
+  .passo {
+    width: 32px;
+    height: 32px;
+  }
+  .chip {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+}
+
+/* Chi punta con il dito non ha hover: niente stati che restano appiccicati. */
+@media (hover: none) {
+  .btn:hover:not(:disabled),
+  .chip:hover,
+  .opzione:hover:not(:disabled),
+  .tessera-gioco:hover {
+    background: inherit;
+  }
+  .lettore-manopola {
+    opacity: 1;
   }
 }
 

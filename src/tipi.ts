@@ -126,17 +126,14 @@ export interface StatoQdcp {
 
 export interface StatoMusica {
   categoriaIndex: number
+  /** Brano evidenziato: e' quello su cui agiscono le scorciatoie da tastiera */
   branoIndex: number
   /** Indice nel giro dei giocatori */
   turnoIndex: number
-  /** Moltiplicatore del valore del brano: 1, 0.5, 0.25... */
-  moltiplicatore: number
-  /** Quanti indizi audio sono stati sbloccati (1 o 2) */
-  indizioSbloccato: number
-  rivelato: boolean
+  /** Moltiplicatore per brano: 1, 0.5, 0.25. Assente = pieno. */
+  moltiplicatori?: Record<string, number>
   /** Giocatori usciti dalla categoria in corso */
   eliminati: string[]
-  chiusi: string[]
 }
 
 export interface Sessione {

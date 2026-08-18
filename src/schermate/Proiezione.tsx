@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ImmagineScalata } from '../componenti/ImmagineScalata'
 import { useStore } from '../store'
 
 /**
@@ -68,7 +69,13 @@ export function Proiezione() {
 
       <div className="proiezione-palco">
         {sorgente ? (
-          <img src={sorgente} alt={stato.rivelata ? voce.nome : `Indizio ${mostrate}`} />
+          <ImmagineScalata
+            src={sorgente}
+            alt={stato.rivelata ? voce.nome : `Indizio ${mostrate}`}
+            // Le soluzioni sono foto intere e reggono l'ingrandimento;
+            // i ritagli-indizio sono minuscoli e oltre 4x diventano poltiglia.
+            fattoreMax={stato.rivelata && voce.reveal ? 6 : 4}
+          />
         ) : (
           <p className="proiezione-attesa-testo">Immagine non disponibile</p>
         )}
