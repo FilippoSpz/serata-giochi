@@ -13,3 +13,6 @@ dist/
 # Servono solo per il "reveal" musicale; senza, l'app mostra titolo e artista.
 # Per rigenerarli: npm run importa-media
 public/media/musica/**/completo.mp3
+
+# Artefatto incrementale di tsc -b
+tsconfig.tsbuildinfo
