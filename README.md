@@ -94,11 +94,31 @@ apra l'app senza dati salvati.
 
 ---
 
+## Pubblicare su GitHub
+
+`npm run pubblica` crea il repository e fa il push leggendo le credenziali da `.env`:
+
+```bash
+cp .env.example .env          # poi riempi GITHUB_TOKEN e GITHUB_USER
+npm run pubblica -- --verifica   # controlla token, permessi e stato, senza toccare nulla
+npm run pubblica                 # crea il repo (se manca) e pusha
+```
+
+`.env` è escluso da `.gitignore`, quindi il token non finisce mai nel repository. Non viene
+nemmeno scritto in `.git/config` né passato sulla riga di comando: git lo riceve tramite un
+credential helper temporaneo che lo legge dall'ambiente del processo. In caso di errore, il token
+viene mascherato prima di stampare l'output di git.
+
+Serve un [fine-grained token](https://github.com/settings/personal-access-tokens/new) con
+**Administration: Read and write** (per creare il repo) e **Contents: Read and write** (per il
+push); in alternativa un token classic con il solo scope `repo`. È revocabile in qualsiasi
+momento. Lo script è rieseguibile: se il repo esiste già, salta la creazione e fa solo il push.
+
 ## Deploy su Netlify
 
 `netlify.toml` è già configurato (build `npm run build`, publish `dist`, redirect SPA, cache dei
 media). Da Netlify: **Add new site → Import an existing project**, scegli il repository, e i
-valori vengono letti dal file — non serve impostare nulla a mano.
+valori vengono letti dal file — non serve impostare nulla a mano. Funziona anche con repo privati.
 
 ---
 

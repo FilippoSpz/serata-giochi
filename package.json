@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "importa-media": "node scripts/importa-media.mjs"
+    "importa-media": "node scripts/importa-media.mjs",
+    "pubblica": "node scripts/pubblica-github.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",
