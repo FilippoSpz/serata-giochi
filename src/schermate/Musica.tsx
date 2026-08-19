@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import { AnnullaUltimo, IntestazioneGioco, Regolamento, ServeSessione } from '../componenti/Comuni'
 import { LettoreAudio } from '../componenti/LettoreAudio'
 import type { ApiLettore } from '../componenti/LettoreAudio'
-import { REGOLE, SECONDI_INDIZIO } from '../dati'
+import { ANTICIPO_RITORNELLO, REGOLE, SECONDI_INDIZIO } from '../dati'
 import type { Rotta } from '../rotte'
 import { assegnazioneDi, formattaPunti, useStore, vociAssegnate } from '../store'
 import type { Brano } from '../tipi'
@@ -17,22 +17,39 @@ const MOLTIPLICATORI = [
 /** Ogni passaggio agli avversari vale meta', ma non si scende sotto un quarto. */
 const MINIMO = 0.25
 
+function mmss(secondi: number) {
+  const m = Math.floor(secondi / 60)
+  const s = Math.floor(secondi % 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
 export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
-  const { dati, sessione, aggiornaSessione, assegnaPunti, annullaEvento } = useStore()
+  const { dati, sessione, aggiornaSessione, assegnaPunti, annullaEvento, setDati } = useStore()
   const lettori = useRef(new Map<string, ApiLettore | null>())
   const stato = sessione?.musica
 
+  // Il brano in gioco serve anche alle scorciatoie, che vivono in un effetto
+  // dichiarato prima delle uscite anticipate: lo calcoliamo qui, in chiaro.
+  const categoriaAttiva = stato
+    ? dati.musica[Math.min(stato.categoriaIndex, dati.musica.length - 1)]
+    : undefined
+  const branoInGioco = categoriaAttiva?.brani.length
+    ? categoriaAttiva.brani[Math.min(stato!.branoIndex, categoriaAttiva.brani.length - 1)]
+    : undefined
+  const chiaveAttiva = stato ? `${stato.categoriaIndex}-${stato.branoIndex}` : ''
+  const ritornelloAttivo = branoInGioco?.ritornello
+
   /**
-   * Spazio, 2 e R agiscono sul brano in gioco: mentre si conduce si guarda il
-   * tavolo, non lo schermo. Disattivate mentre si scrive in un campo.
+   * Spazio, 2, 3 e R agiscono sul brano in gioco: mentre si conduce si guarda
+   * il tavolo, non lo schermo. Disattivate mentre si scrive in un campo.
    */
-  const branoAttivo = stato ? `${stato.categoriaIndex}-${stato.branoIndex}` : ''
   useEffect(() => {
     const suTasto = (e: KeyboardEvent) => {
       const bersaglio = e.target as HTMLElement | null
       if (bersaglio?.closest('input, textarea, select, [contenteditable="true"]')) return
-      const primo = lettori.current.get(`${branoAttivo}-1`)
-      const secondo = lettori.current.get(`${branoAttivo}-2`)
+      const primo = lettori.current.get(`${chiaveAttiva}-1`)
+      const secondo = lettori.current.get(`${chiaveAttiva}-2`)
+      const completo = lettori.current.get(`${chiaveAttiva}-c`)
       if (!primo) return
       // Il bottone appena cliccato trattiene il fuoco e si riattiverebbe con lo
       // spazio: glielo togliamo, cosi' spazio vuol dire solo "play".
@@ -48,6 +65,12 @@ export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
         e.preventDefault()
         togliFuoco()
         secondo?.alterna()
+      } else if (e.key === '3') {
+        e.preventDefault()
+        togliFuoco()
+        if (completo && ritornelloAttivo !== undefined) {
+          completo.riproduciDa(ritornelloAttivo - ANTICIPO_RITORNELLO)
+        }
       } else if (e.key === 'r' || e.key === 'R') {
         e.preventDefault()
         primo.riavvia()
@@ -55,7 +78,7 @@ export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
     }
     window.addEventListener('keydown', suTasto)
     return () => window.removeEventListener('keydown', suTasto)
-  }, [branoAttivo])
+  }, [chiaveAttiva, ritornelloAttivo])
 
   if (!sessione || !stato) return <ServeSessione vaiASetup={() => vaiA('setup')} />
   if (dati.musica.length === 0)
@@ -79,6 +102,23 @@ export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
 
   const impostaMoltiplicatore = (branoId: string, valore: number) =>
     patch({ moltiplicatori: { ...(stato.moltiplicatori ?? {}), [branoId]: valore } })
+
+  /** Il punto del ritornello sta nei contenuti, non nella sessione: si segna
+   *  una volta e resta anche per le serate successive. */
+  const impostaRitornello = (branoId: string, secondi: number) =>
+    setDati((d) => ({
+      ...d,
+      musica: d.musica.map((c) =>
+        c.id === categoria.id
+          ? {
+              ...c,
+              brani: c.brani.map((b) =>
+                b.id === branoId ? { ...b, ritornello: Math.round(secondi * 10) / 10 } : b,
+              ),
+            }
+          : c,
+      ),
+    }))
 
   /** Primo brano non ancora assegnato dopo `da`, girando in tondo. */
   const prossimoBrano = (da: number) => {
@@ -225,7 +265,50 @@ export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
                   compatto
                 />
                 {brano.completo && (
-                  <LettoreAudio src={brano.completo} etichetta="Completo" compatto />
+                  <>
+                    <LettoreAudio
+                      ref={(api) => {
+                        lettori.current.set(`${chiave}-c`, api)
+                      }}
+                      src={brano.completo}
+                      etichetta="Completo"
+                      compatto
+                      // Sei brani interi per categoria sono decine di MB: si
+                      // scaricano solo quando qualcuno preme davvero play.
+                      precarica="none"
+                    />
+                    <div className="riga-ritornello">
+                      <button
+                        className="btn btn--piccolo btn--fantasma"
+                        disabled={brano.ritornello === undefined}
+                        onClick={() =>
+                          lettori.current
+                            .get(`${chiave}-c`)
+                            ?.riproduciDa((brano.ritornello ?? 0) - ANTICIPO_RITORNELLO)
+                        }
+                        title={
+                          brano.ritornello === undefined
+                            ? 'Ritornello non ancora segnato'
+                            : `Parte da ${mmss(Math.max(0, brano.ritornello - ANTICIPO_RITORNELLO))}, poco prima del ritornello`
+                        }
+                      >
+                        ▶ Ritornello
+                        {brano.ritornello !== undefined && (
+                          <span className="ritornello-tempo"> {mmss(brano.ritornello)}</span>
+                        )}
+                      </button>
+                      <button
+                        className="btn btn--piccolo btn--fantasma"
+                        onClick={() => {
+                          const p = lettori.current.get(`${chiave}-c`)?.posizione() ?? 0
+                          if (p > 0) impostaRitornello(brano.id, p)
+                        }}
+                        title="Mentre il brano suona, premi quando attacca il ritornello: il punto resta salvato"
+                      >
+                        ⌖ Segna qui
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -293,7 +376,8 @@ export function Musica({ vaiA }: { vaiA: (r: Rotta) => void }) {
         <span style={{ color: 'var(--testo-fioco)', fontSize: 12.5 }}>
           {assegnati.size} / {dati.musica.reduce((n, c) => n + c.brani.length, 0)} brani ·{' '}
           <span className="scorciatoie-inline">
-            <kbd>Spazio</kbd> indizio 1 <kbd>2</kbd> indizio 2 <kbd>R</kbd> da capo
+            <kbd>Spazio</kbd> indizio 1 <kbd>2</kbd> indizio 2 <kbd>3</kbd> ritornello{' '}
+            <kbd>R</kbd> da capo
           </span>
         </span>
         <div className="riga-bottoni">

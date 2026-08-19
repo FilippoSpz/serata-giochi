@@ -336,6 +336,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/anni-80-90/pyt/indizio-1.mp3',
           indizio2: '/media/musica/anni-80-90/pyt/indizio-2.mp3',
           completo: '/media/musica/anni-80-90/pyt/completo.mp3',
+          ritornello: 60,
         },
         {
           id: '99-luftballons',
@@ -344,6 +345,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/anni-80-90/99-luftballons/indizio-1.mp3',
           indizio2: '/media/musica/anni-80-90/99-luftballons/indizio-2.mp3',
           completo: '/media/musica/anni-80-90/99-luftballons/completo.mp3',
+          ritornello: 47,
         },
         {
           id: 'funkytown',
@@ -352,6 +354,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/anni-80-90/funkytown/indizio-1.mp3',
           indizio2: '/media/musica/anni-80-90/funkytown/indizio-2.mp3',
           completo: '/media/musica/anni-80-90/funkytown/completo.mp3',
+          ritornello: 33,
         },
         {
           id: 'we-didnt-start-the-fire',
@@ -360,6 +363,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/anni-80-90/we-didnt-start-the-fire/indizio-1.mp3',
           indizio2: '/media/musica/anni-80-90/we-didnt-start-the-fire/indizio-2.mp3',
           completo: '/media/musica/anni-80-90/we-didnt-start-the-fire/completo.mp3',
+          ritornello: 37,
         },
         {
           id: 'vogue',
@@ -368,6 +372,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/anni-80-90/vogue/indizio-1.mp3',
           indizio2: '/media/musica/anni-80-90/vogue/indizio-2.mp3',
           completo: '/media/musica/anni-80-90/vogue/completo.mp3',
+          ritornello: 62,
         },
         {
           id: 'californication',
@@ -376,6 +381,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/anni-80-90/californication/indizio-1.mp3',
           indizio2: '/media/musica/anni-80-90/californication/indizio-2.mp3',
           completo: '/media/musica/anni-80-90/californication/completo.mp3',
+          ritornello: 52,
         },
       ],
     },
@@ -390,6 +396,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/edm/stay/indizio-1.mp3',
           indizio2: '/media/musica/edm/stay/indizio-2.mp3',
           completo: '/media/musica/edm/stay/completo.mp3',
+          ritornello: 47,
         },
         {
           id: 'sweet-nothing',
@@ -398,6 +405,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/edm/sweet-nothing/indizio-1.mp3',
           indizio2: '/media/musica/edm/sweet-nothing/indizio-2.mp3',
           completo: '/media/musica/edm/sweet-nothing/completo.mp3',
+          ritornello: 50,
         },
         {
           id: 'without-you',
@@ -406,6 +414,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/edm/without-you/indizio-1.mp3',
           indizio2: '/media/musica/edm/without-you/indizio-2.mp3',
           completo: '/media/musica/edm/without-you/completo.mp3',
+          ritornello: 45,
         },
         {
           id: 'selfie',
@@ -414,6 +423,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/edm/selfie/indizio-1.mp3',
           indizio2: '/media/musica/edm/selfie/indizio-2.mp3',
           completo: '/media/musica/edm/selfie/completo.mp3',
+          ritornello: 65,
         },
         {
           id: 'the-fox',
@@ -422,6 +432,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/edm/the-fox/indizio-1.mp3',
           indizio2: '/media/musica/edm/the-fox/indizio-2.mp3',
           completo: '/media/musica/edm/the-fox/completo.mp3',
+          ritornello: 50,
         },
         {
           id: 'lovers-on-the-sun',
@@ -430,6 +441,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/edm/lovers-on-the-sun/indizio-1.mp3',
           indizio2: '/media/musica/edm/lovers-on-the-sun/indizio-2.mp3',
           completo: '/media/musica/edm/lovers-on-the-sun/completo.mp3',
+          ritornello: 50,
         },
       ],
     },
@@ -444,6 +456,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/italiana/da-zero-a-cento/indizio-1.mp3',
           indizio2: '/media/musica/italiana/da-zero-a-cento/indizio-2.mp3',
           completo: '/media/musica/italiana/da-zero-a-cento/completo.mp3',
+          ritornello: 45,
         },
         {
           id: 'ma-quale-idea',
@@ -452,6 +465,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/italiana/ma-quale-idea/indizio-1.mp3',
           indizio2: '/media/musica/italiana/ma-quale-idea/indizio-2.mp3',
           completo: '/media/musica/italiana/ma-quale-idea/completo.mp3',
+          ritornello: 40,
         },
         {
           id: 'figli-delle-stelle',
@@ -460,6 +474,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/italiana/figli-delle-stelle/indizio-1.mp3',
           indizio2: '/media/musica/italiana/figli-delle-stelle/indizio-2.mp3',
           completo: '/media/musica/italiana/figli-delle-stelle/completo.mp3',
+          ritornello: 50,
         },
         {
           id: 'se-bruciasse-la-citta',
@@ -468,6 +483,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/italiana/se-bruciasse-la-citta/indizio-1.mp3',
           indizio2: '/media/musica/italiana/se-bruciasse-la-citta/indizio-2.mp3',
           completo: '/media/musica/italiana/se-bruciasse-la-citta/completo.mp3',
+          ritornello: 40,
         },
         {
           id: 'che-ne-sanno-i-2000',
@@ -476,6 +492,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/italiana/che-ne-sanno-i-2000/indizio-1.mp3',
           indizio2: '/media/musica/italiana/che-ne-sanno-i-2000/indizio-2.mp3',
           completo: '/media/musica/italiana/che-ne-sanno-i-2000/completo.mp3',
+          ritornello: 40,
         },
         {
           id: 'tran-tran',
@@ -484,6 +501,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/italiana/tran-tran/indizio-1.mp3',
           indizio2: '/media/musica/italiana/tran-tran/indizio-2.mp3',
           completo: '/media/musica/italiana/tran-tran/completo.mp3',
+          ritornello: 40,
         },
       ],
     },
@@ -498,6 +516,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/billions-club/million-dollar-baby/indizio-1.mp3',
           indizio2: '/media/musica/billions-club/million-dollar-baby/indizio-2.mp3',
           completo: '/media/musica/billions-club/million-dollar-baby/completo.mp3',
+          ritornello: 35,
         },
         {
           id: 'circles',
@@ -506,6 +525,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/billions-club/circles/indizio-1.mp3',
           indizio2: '/media/musica/billions-club/circles/indizio-2.mp3',
           completo: '/media/musica/billions-club/circles/completo.mp3',
+          ritornello: 40,
         },
         {
           id: 'finesse',
@@ -514,6 +534,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/billions-club/finesse/indizio-1.mp3',
           indizio2: '/media/musica/billions-club/finesse/indizio-2.mp3',
           completo: '/media/musica/billions-club/finesse/completo.mp3',
+          ritornello: 40,
         },
         {
           id: 'timeless',
@@ -522,6 +543,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/billions-club/timeless/indizio-1.mp3',
           indizio2: '/media/musica/billions-club/timeless/indizio-2.mp3',
           completo: '/media/musica/billions-club/timeless/completo.mp3',
+          ritornello: 40,
         },
         {
           id: 'crown',
@@ -530,6 +552,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/billions-club/crown/indizio-1.mp3',
           indizio2: '/media/musica/billions-club/crown/indizio-2.mp3',
           completo: '/media/musica/billions-club/crown/completo.mp3',
+          ritornello: 30,
         },
         {
           id: 'physical',
@@ -538,6 +561,7 @@ export const DATI_INIZIALI: DatiGiochi = {
           indizio1: '/media/musica/billions-club/physical/indizio-1.mp3',
           indizio2: '/media/musica/billions-club/physical/indizio-2.mp3',
           completo: '/media/musica/billions-club/physical/completo.mp3',
+          ritornello: 55,
         },
       ],
     },
@@ -549,6 +573,12 @@ export const DATI_INIZIALI: DatiGiochi = {
  * forniti ne durano 5: comanda il file, non il documento.
  */
 export const SECONDI_INDIZIO = 5
+
+/**
+ * Di quanto anticipare il ritornello: due secondi e mezzo bastano a farlo
+ * sentire arrivare senza rimettere in gioco la coda della strofa.
+ */
+export const ANTICIPO_RITORNELLO = 2.5
 
 /** Regolamenti mostrati in testa a ogni gioco, trascritti dal PDF. */
 export const REGOLE = {

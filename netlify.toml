@@ -11,7 +11,17 @@
   to = "/index.html"
   status = 200
 
+# Le immagini sono piccole e non cambiano mai: cache lunga e via.
 [[headers]]
-  for = "/media/*"
+  for = "/media/immagini/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# L'audio no. Un brano da 19 MB interrotto a meta' lascia in cache una copia
+# troncata, e con "immutable" il browser non la ricontrolla piu': il file sul
+# server e' intero ma il lettore riceve 600 byte e sembra rotto. Una settimana
+# di cache basta per la serata e lascia al browser una via d'uscita.
+[[headers]]
+  for = "/media/musica/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

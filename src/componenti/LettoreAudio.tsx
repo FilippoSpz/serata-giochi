@@ -5,6 +5,10 @@ export interface ApiLettore {
   riavvia: () => void
   pausa: () => void
   cerca: (delta: number) => void
+  /** Posizione corrente in secondi; 0 se il file non e' ancora pronto. */
+  posizione: () => number
+  /** Salta a un punto preciso del brano e parte da li'. */
+  riproduciDa: (secondi: number) => void
 }
 
 interface Props {
@@ -14,6 +18,13 @@ interface Props {
   bloccatoCon?: string
   /** Riduce l'altezza: usato per il brano completo, secondario rispetto agli indizi */
   compatto?: boolean
+  /**
+   * Quanto scaricare prima che si prema play. Gli indizi pesano 200 KB e
+   * devono partire istantanei; i brani interi pesano fino a 19 MB e in una
+   * pagina con sei brani sarebbero 100 MB scaricati per niente — quelli
+   * vanno lasciati a 'none'.
+   */
+  precarica?: 'auto' | 'metadata' | 'none'
 }
 
 /** Solo un audio alla volta: appena uno parte, gli altri si fermano. */
@@ -26,26 +37,63 @@ function tempo(secondi: number) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+function descriviErrore(codice: number | undefined) {
+  switch (codice) {
+    case 1:
+      return 'caricamento interrotto'
+    case 2:
+      return 'errore di rete'
+    case 3:
+      return 'file danneggiato o incompleto'
+    default:
+      return 'file non trovato — esegui npm run importa-media'
+  }
+}
+
 export const LettoreAudio = forwardRef<ApiLettore, Props>(function LettoreAudio(
-  { src, etichetta, bloccatoCon, compatto },
+  { src, etichetta, bloccatoCon, compatto, precarica = 'auto' },
   ref,
 ) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const barraRef = useRef<HTMLDivElement>(null)
+  const saltoInSospeso = useRef<number | null>(null)
+  /** Qualcuno ha premuto play e la riproduzione non e' ancora partita. */
+  const volevaSuonare = useRef(false)
   const [inRiproduzione, setInRiproduzione] = useState(false)
-  const [posizione, setPosizione] = useState(0)
+  const [posizioneAttuale, setPosizione] = useState(0)
   const [durata, setDurata] = useState(0)
-  const [mancante, setMancante] = useState(false)
+  const [guasto, setGuasto] = useState<string | null>(null)
   const [caricato, setCaricato] = useState(false)
+  /**
+   * Marcatore anti-cache. Chrome puo' conservare una copia troncata del file
+   * (una richiesta interrotta a meta' che l'header `immutable` gli impedisce
+   * di ricontrollare): il file sul server e' intero, ma il browser serve i
+   * suoi 600 byte e il lettore sembra rotto. Cambiare l'URL cambia la voce di
+   * cache, quindi il primo errore lo curiamo da soli riscaricando.
+   */
+  const [rimedio, setRimedio] = useState<number | null>(null)
+  const sorgente = rimedio === null ? src : `${src}${src.includes('?') ? '&' : '?'}riprova=${rimedio}`
 
   // Cambio di brano: si riparte da zero, senza trascinarsi dietro lo stato vecchio.
   useEffect(() => {
-    setMancante(false)
+    setGuasto(null)
+    setRimedio(null)
     setCaricato(false)
     setPosizione(0)
     setDurata(0)
     setInRiproduzione(false)
+    saltoInSospeso.current = null
+    volevaSuonare.current = false
   }, [src])
+
+  const suErrore = useCallback(() => {
+    const a = audioRef.current
+    if (rimedio === null) {
+      setRimedio(Date.now())
+      return
+    }
+    setGuasto(descriviErrore(a?.error?.code))
+  }, [rimedio])
 
   const pausa = useCallback(() => {
     audioRef.current?.pause()
@@ -53,10 +101,17 @@ export const LettoreAudio = forwardRef<ApiLettore, Props>(function LettoreAudio(
 
   const riproduci = useCallback(() => {
     const a = audioRef.current
-    if (!a || mancante) return
+    if (!a || guasto) return
+    volevaSuonare.current = true
     for (const fermaAltro of attivi) if (fermaAltro !== pausa) fermaAltro()
-    void a.play().catch(() => setMancante(true))
-  }, [mancante, pausa])
+    void a.play().catch((e: unknown) => {
+      // Un play() rifiutato non vuol dire file mancante: succede anche quando
+      // la riproduzione viene interrotta da un altro comando. Lo trattiamo come
+      // guasto solo se il media element ha davvero un errore suo.
+      if (a.error) suErrore()
+      else console.warn(`play() rifiutato su ${etichetta}:`, e)
+    })
+  }, [guasto, pausa, suErrore, etichetta])
 
   const alterna = useCallback(() => {
     const a = audioRef.current
@@ -67,7 +122,8 @@ export const LettoreAudio = forwardRef<ApiLettore, Props>(function LettoreAudio(
   const riavvia = useCallback(() => {
     const a = audioRef.current
     if (!a) return
-    a.currentTime = 0
+    if (a.readyState >= 1) a.currentTime = 0
+    else saltoInSospeso.current = 0
     riproduci()
   }, [riproduci])
 
@@ -77,12 +133,40 @@ export const LettoreAudio = forwardRef<ApiLettore, Props>(function LettoreAudio(
     a.currentTime = Math.min(Math.max(0, a.currentTime + delta), a.duration || 0)
   }, [])
 
-  useImperativeHandle(ref, () => ({ alterna, riavvia, pausa, cerca }), [
-    alterna,
-    riavvia,
-    pausa,
-    cerca,
-  ])
+  const posizione = useCallback(() => audioRef.current?.currentTime ?? 0, [])
+
+  /**
+   * Con precarica 'none' i metadati non ci sono ancora e scrivere currentTime
+   * non avrebbe effetto: il salto resta in sospeso e lo applichiamo appena il
+   * browser sa quanto e' lungo il brano.
+   */
+  const riproduciDa = useCallback(
+    (secondi: number) => {
+      const a = audioRef.current
+      if (!a) return
+      const punto = Math.max(0, secondi)
+      if (a.readyState >= 1) a.currentTime = punto
+      else saltoInSospeso.current = punto
+      riproduci()
+    },
+    [riproduci],
+  )
+
+  useImperativeHandle(
+    ref,
+    () => ({ alterna, riavvia, pausa, cerca, posizione, riproduciDa }),
+    [alterna, riavvia, pausa, cerca, posizione, riproduciDa],
+  )
+
+  /**
+   * Ripartenza dopo il rimedio anti-cache: chi aveva premuto play non deve
+   * accorgersi di niente, tanto meno premere una seconda volta. L'eventuale
+   * salto al ritornello e' ancora in sospeso, quindi si riapplica da solo.
+   */
+  useEffect(() => {
+    if (rimedio === null || !volevaSuonare.current) return
+    riproduci()
+  }, [rimedio, riproduci])
 
   useEffect(() => {
     attivi.add(pausa)
@@ -118,32 +202,55 @@ export const LettoreAudio = forwardRef<ApiLettore, Props>(function LettoreAudio(
     )
   }
 
-  if (mancante) {
+  if (guasto) {
     return (
       <div className={`lettore${compatto ? ' lettore--compatto' : ''} lettore--bloccato`}>
         <span className="lettore-etichetta">{etichetta}</span>
-        <span className="lettore-messaggio">File audio non trovato — esegui npm run importa-media</span>
+        <span className="lettore-messaggio">Audio non disponibile — {guasto}</span>
+        <button
+          className="lettore-azione"
+          onClick={() => {
+            setGuasto(null)
+            setRimedio(Date.now())
+          }}
+          title="Riprova scaricandolo di nuovo"
+          aria-label={`Riprova ${etichetta}`}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z" fill="currentColor" />
+          </svg>
+        </button>
       </div>
     )
   }
 
-  const percentuale = durata ? (posizione / durata) * 100 : 0
+  const percentuale = durata ? (posizioneAttuale / durata) * 100 : 0
 
   return (
     <div className={`lettore${compatto ? ' lettore--compatto' : ''}`}>
       <audio
         ref={audioRef}
-        src={src}
-        preload="auto"
+        src={sorgente}
+        preload={precarica}
         onLoadedMetadata={(e) => {
           setDurata(e.currentTarget.duration)
           setCaricato(true)
+          if (saltoInSospeso.current !== null) {
+            e.currentTarget.currentTime = Math.min(
+              saltoInSospeso.current,
+              Math.max(0, (e.currentTarget.duration || 0) - 1),
+            )
+            saltoInSospeso.current = null
+          }
         }}
         onTimeUpdate={(e) => setPosizione(e.currentTarget.currentTime)}
-        onPlay={() => setInRiproduzione(true)}
+        onPlay={() => {
+          volevaSuonare.current = false
+          setInRiproduzione(true)
+        }}
         onPause={() => setInRiproduzione(false)}
         onEnded={() => setInRiproduzione(false)}
-        onError={() => setMancante(true)}
+        onError={suErrore}
       />
 
       <button
@@ -176,7 +283,7 @@ export const LettoreAudio = forwardRef<ApiLettore, Props>(function LettoreAudio(
         aria-label={`Posizione in ${etichetta}`}
         aria-valuemin={0}
         aria-valuemax={Math.round(durata)}
-        aria-valuenow={Math.round(posizione)}
+        aria-valuenow={Math.round(posizioneAttuale)}
         onKeyDown={(e) => {
           if (e.key === 'ArrowRight') {
             e.preventDefault()
@@ -193,16 +300,13 @@ export const LettoreAudio = forwardRef<ApiLettore, Props>(function LettoreAudio(
       </div>
 
       <span className="lettore-tempo">
-        {tempo(posizione)}
+        {tempo(posizioneAttuale)}
         <span className="lettore-tempo-totale"> / {caricato ? tempo(durata) : '—:—'}</span>
       </span>
 
       <button className="lettore-azione" onClick={riavvia} title="Da capo (R)" aria-label="Da capo">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"
-            fill="currentColor"
-          />
+          <path d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z" fill="currentColor" />
         </svg>
       </button>
     </div>

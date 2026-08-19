@@ -1116,6 +1116,21 @@ details.regolamento[open] summary {
   margin-top: 0;
 }
 
+/* Comandi del ritornello: stanno sotto il lettore del brano intero, non
+   accanto — di fianco rubavano larghezza alla barra di avanzamento. */
+.riga-ritornello {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  padding-left: 4px;
+}
+.ritornello-tempo {
+  font-variant-numeric: tabular-nums;
+  color: var(--accento);
+  font-weight: 700;
+}
+
 .brano-punti {
   display: flex;
   flex-direction: column;
@@ -1656,7 +1671,22 @@ body.corpo-proiezione {
   .brano-testa {
     grid-column: 1 / -1;
   }
-  .brano-punti {
+  /* Comandi del ritornello: stanno sotto il lettore del brano intero, non
+   accanto — di fianco rubavano larghezza alla barra di avanzamento. */
+.riga-ritornello {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  padding-left: 4px;
+}
+.ritornello-tempo {
+  font-variant-numeric: tabular-nums;
+  color: var(--accento);
+  font-weight: 700;
+}
+
+.brano-punti {
     align-items: stretch;
   }
   .brano-esito,

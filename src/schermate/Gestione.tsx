@@ -508,14 +508,14 @@ function ModificaMusica({ dati, setDati, elimina }: Props) {
                     />
                   </div>
                   <div className="campo">
-                    <label>Indizio 1 (primi 10s)</label>
+                    <label>Indizio 1 (primi 5s)</label>
                     <input
                       value={b.indizio1}
                       onChange={(e) => aggiornaBrano(c.id, b.id, { indizio1: e.target.value })}
                     />
                   </div>
                   <div className="campo">
-                    <label>Indizio 2 (10s successivi)</label>
+                    <label>Indizio 2 (5s successivi)</label>
                     <input
                       value={b.indizio2}
                       onChange={(e) => aggiornaBrano(c.id, b.id, { indizio2: e.target.value })}
@@ -527,6 +527,21 @@ function ModificaMusica({ dati, setDati, elimina }: Props) {
                       value={b.completo ?? ''}
                       onChange={(e) =>
                         aggiornaBrano(c.id, b.id, { completo: e.target.value.trim() || undefined })
+                      }
+                    />
+                  </div>
+                  <div className="campo">
+                    <label>Ritornello (secondi dall’inizio)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={b.ritornello ?? ''}
+                      placeholder="es. 47"
+                      onChange={(e) =>
+                        aggiornaBrano(c.id, b.id, {
+                          ritornello: e.target.value === '' ? undefined : Number(e.target.value),
+                        })
                       }
                     />
                   </div>

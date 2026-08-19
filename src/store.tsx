@@ -9,7 +9,7 @@ import type { DatiGiochi, EventoPunti, Giocatore, IdGioco, Sessione, Squadra } f
  * contenuti di partenza cambiano, o quando una modifica fatta da Gestione —
  * una notizia cancellata per sbaglio — e' rimasta incollata li' dentro.
  */
-export const CHIAVE_DATI = 'serata-giochi:dati:v2'
+export const CHIAVE_DATI = 'serata-giochi:dati:v3'
 export const CHIAVE_SESSIONE = 'serata-giochi:sessione:v2'
 
 export const COLORI_SQUADRE = ['#ff5c7a', '#3ddc97'] as const

@@ -54,6 +54,12 @@ export interface Brano {
   indizio1: string
   indizio2: string
   completo?: string
+  /**
+   * Secondo in cui parte il ritornello del brano completo. Il lettore comincia
+   * qualche istante prima, cosi' si sente arrivare. Si corregge dal vivo con
+   * «Segna qui» mentre il brano suona.
+   */
+  ritornello?: number
 }
 
 export interface CategoriaMusica {
