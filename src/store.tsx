@@ -15,6 +15,23 @@ export const CHIAVE_SESSIONE = 'serata-giochi:sessione:v2'
 export const COLORI_SQUADRE = ['#ff5c7a', '#3ddc97'] as const
 
 /**
+ * Le versioni superate restano li' a occupare spazio e a confondere chi apre
+ * gli strumenti del browser durante la serata. Si buttano all'avvio: quello
+ * che conta e' gia' stato letto dalle chiavi correnti.
+ */
+function buttaVecchieVersioni() {
+  try {
+    for (const chiave of Object.keys(localStorage)) {
+      if (!chiave.startsWith('serata-giochi:')) continue
+      if (chiave === CHIAVE_DATI || chiave === CHIAVE_SESSIONE) continue
+      localStorage.removeItem(chiave)
+    }
+  } catch {
+    /* storage non disponibile: non e' un problema che valga una schermata */
+  }
+}
+
+/**
  * Legge da localStorage senza fidarsi di cio' che ci trova. Dati scritti da
  * versioni precedenti, o troncati a meta', non devono lasciare la serata con
  * una schermata bianca: se la forma non torna si riparte dal valore di base.
@@ -138,9 +155,11 @@ interface ValoreStore {
 const Contesto = createContext<ValoreStore | null>(null)
 
 export function ProviderStore({ children }: { children: ReactNode }) {
-  const [dati, setDatiState] = useState<DatiGiochi>(() =>
-    leggi(CHIAVE_DATI, DATI_INIZIALI, datiValidi),
-  )
+  const [dati, setDatiState] = useState<DatiGiochi>(() => {
+    const iniziali = leggi(CHIAVE_DATI, DATI_INIZIALI, datiValidi)
+    buttaVecchieVersioni()
+    return iniziali
+  })
   const [sessione, setSessione] = useState<Sessione | null>(() =>
     riparaSessione(leggi<Sessione | null>(CHIAVE_SESSIONE, null, sessioneValida)),
   )
