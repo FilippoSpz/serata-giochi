@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
+import { CHIAVE_DATI, CHIAVE_SESSIONE } from '../store'
 
 interface Stato {
   errore: Error | null
@@ -23,8 +24,8 @@ export class ReteDiSicurezza extends Component<{ children: ReactNode }, Stato> {
 
   private scaricaBackup = () => {
     const contenuto = {
-      dati: localStorage.getItem('serata-giochi:dati:v1'),
-      sessione: localStorage.getItem('serata-giochi:sessione:v1'),
+      dati: localStorage.getItem(CHIAVE_DATI),
+      sessione: localStorage.getItem(CHIAVE_SESSIONE),
     }
     const blob = new Blob([JSON.stringify(contenuto, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -71,7 +72,7 @@ export class ReteDiSicurezza extends Component<{ children: ReactNode }, Stato> {
             <button
               className="btn btn--ko"
               onClick={() => {
-                localStorage.removeItem('serata-giochi:sessione:v1')
+                localStorage.removeItem(CHIAVE_SESSIONE)
                 window.location.reload()
               }}
             >

@@ -206,8 +206,7 @@ body {
 .card + .card,
 .griglia-classifica + .card,
 .selettore-categorie + .card,
-.turno + .card,
-.giro-giocatori + .card {
+.barra-turno + .card {
   margin-top: 14px;
 }
 
@@ -549,6 +548,18 @@ details.regolamento[open] summary {
   font-size: 11.5px;
   color: var(--testo-tenue);
 }
+.opzione--statica {
+  cursor: default;
+}
+.segno-giusta {
+  margin-left: auto;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-weight: 700;
+  color: var(--ok);
+  flex: 0 0 auto;
+}
 .opzione--giusta {
   border-color: var(--ok);
   background: color-mix(in srgb, var(--ok) 10%, transparent);
@@ -674,6 +685,9 @@ details.regolamento[open] summary {
 }
 
 /* ---------------------------------------------------------------- immagini */
+/* Altezza decisa qui, non dall'immagine: e' la scatola che comanda, e dentro
+   il componente scala il contenuto senza tagliarlo. Con l'altezza libera un
+   fotogramma da 1400px riempiva mezzo schermo e i bottoni finivano sotto. */
 .palco {
   display: grid;
   place-items: center;
@@ -681,12 +695,9 @@ details.regolamento[open] summary {
   border: 1px solid var(--bordo);
   border-radius: 8px;
   padding: 10px;
-  min-height: 260px;
+  height: clamp(190px, 34vh, 340px);
 }
 .palco img {
-  width: 100%;
-  max-height: min(56vh, 560px);
-  object-fit: contain;
   border-radius: 4px;
 }
 .palco .segnaposto {
@@ -766,17 +777,15 @@ details.regolamento[open] summary {
 }
 
 /* -------------------------------------------------------------------- qdcp */
-.parola-nascosta {
-  font-size: 34px;
+.parola-in-gioco {
+  font-size: 40px;
   font-weight: 700;
   letter-spacing: 4px;
   text-align: center;
-  padding: 18px 8px;
+  padding: 14px 8px 20px;
   color: var(--accento);
   text-transform: uppercase;
-}
-.parola-nascosta.coperta {
-  color: var(--bordo-forte);
+  line-height: 1.1;
 }
 .indizi {
   display: grid;
@@ -809,70 +818,6 @@ details.regolamento[open] summary {
 .indizio--coperto .valore {
   filter: blur(6px);
   user-select: none;
-}
-
-/* ------------------------------------------------------------------ musica */
-.turno {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 13px 16px;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--colore) 45%, transparent);
-  background: color-mix(in srgb, var(--colore) 8%, transparent);
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-.turno .etichetta {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 1.1px;
-  color: var(--testo-fioco);
-  font-weight: 700;
-}
-.turno .nome {
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.15;
-}
-.turno .squadra {
-  font-size: 13px;
-  color: var(--colore);
-  font-weight: 600;
-}
-
-.giro-giocatori {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-}
-.gettone-giocatore {
-  padding: 5px 11px;
-  border-radius: 6px;
-  font-size: 12.5px;
-  font-weight: 550;
-  border: 1px solid var(--bordo);
-  background: var(--superficie);
-  color: var(--testo-tenue);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.gettone-giocatore i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.gettone-giocatore--attivo {
-  background: var(--accento-tenue);
-  border-color: var(--accento);
-  color: var(--accento);
-}
-.gettone-giocatore--eliminato {
-  opacity: 0.3;
-  text-decoration: line-through;
 }
 
 /* ------------------------------------------------------------ lettore audio */
@@ -1304,50 +1249,82 @@ details.regolamento[open] summary {
   font-size: 13px;
   color: var(--testo-tenue);
 }
+.formazione-squadra {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--bordo);
+  font-size: 12.5px;
+  color: var(--testo-fioco);
+  line-height: 1.5;
+}
 .pannello-squadra .dettaglio div {
   display: flex;
   justify-content: space-between;
   gap: 10px;
 }
 
-.tabella {
+/* ----------------------------------------------------------------- setup */
+/* Le due squadre sono due blocchi distinti, ognuno con il proprio colore:
+   a colpo d'occhio si vede chi sta con chi, senza contare le righe. */
+.griglia-squadre {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.pannello-formazione {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--colore) 45%, transparent);
+  background: color-mix(in srgb, var(--colore) 7%, var(--superficie));
+}
+.testa-formazione {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  border-collapse: collapse;
-  font-size: 13.5px;
+  flex-wrap: wrap;
 }
-.tabella th,
-.tabella td {
-  text-align: left;
-  padding: 9px 10px;
-  border-bottom: 1px solid var(--bordo);
+.sigla-squadra {
+  flex: 0 0 30px;
+  height: 30px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 15px;
+  background: var(--colore);
+  color: #10091c;
 }
-.tabella th {
-  font-size: 10.5px;
+.nome-squadra {
+  flex: 1 1 120px;
+  min-width: 0;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--colore);
+  font-size: 18px;
+  font-weight: 700;
+  padding: 3px 0;
+}
+.nome-squadra:focus {
+  outline: none;
+  border-bottom-color: var(--colore);
+}
+.conta-formazione {
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.1px;
+  font-weight: 700;
   color: var(--testo-fioco);
 }
-.tabella td.num,
-.tabella th.num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.tabella tbody tr:last-child td {
-  border-bottom: none;
-}
-.tabella .punti-forte {
-  font-weight: 700;
-  font-size: 15px;
-}
-.scorri {
-  overflow-x: auto;
-}
-
-/* ----------------------------------------------------------------- setup */
-.griglia-giocatori {
+.elenco-formazione {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 8px;
+  gap: 7px;
+  width: 100%;
 }
 .riga-giocatore {
   display: flex;
@@ -1357,6 +1334,24 @@ details.regolamento[open] summary {
   border-radius: 7px;
   border: 1px solid var(--bordo);
   background: var(--sfondo);
+}
+.togli-giocatore {
+  flex: 0 0 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--bordo);
+  background: transparent;
+  color: var(--testo-fioco);
+  font-size: 12px;
+  cursor: pointer;
+}
+.togli-giocatore:hover:not(:disabled) {
+  border-color: var(--ko);
+  color: var(--ko);
+}
+.togli-giocatore:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
 }
 .riga-giocatore .indice {
   flex: 0 0 22px;
@@ -1728,8 +1723,8 @@ body.corpo-proiezione {
   .indizio .valore {
     font-size: 16px;
   }
-  .parola-nascosta {
-    font-size: 26px;
+  .parola-in-gioco {
+    font-size: 28px;
     letter-spacing: 2px;
   }
 
@@ -1751,8 +1746,8 @@ body.corpo-proiezione {
     width: 36px;
     height: 36px;
   }
-  .gettone-giocatore {
-    min-height: 34px;
+  .griglia-squadre {
+    grid-template-columns: 1fr;
   }
 
   /* Il brano diventa una scheda impilata. */
@@ -1824,14 +1819,6 @@ body.corpo-proiezione {
     order: 2;
   }
 
-  /* Le rettifiche restano affiancate: impilate raddoppiavano l'altezza riga. */
-  .tabella td.num {
-    white-space: nowrap;
-  }
-  .tabella th,
-  .tabella td {
-    padding: 8px 6px;
-  }
   .navigazione-passi {
     gap: 8px;
   }

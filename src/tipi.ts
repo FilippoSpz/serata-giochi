@@ -85,6 +85,11 @@ export interface Giocatore {
   squadraId: string
 }
 
+/**
+ * Un punto assegnato. La serata si gioca a squadre: il punto e' sempre della
+ * squadra, mai del singolo. Cosi' la classifica ha una sola colonna e non ci
+ * sono due totali da tenere allineati.
+ */
 export interface EventoPunti {
   id: string
   gioco: IdGioco | 'manuale'
@@ -92,8 +97,6 @@ export interface EventoPunti {
   voceId: string
   etichetta: string
   squadraId: string
-  /** Valorizzato solo per i giochi individuali (musica) */
-  giocatoreId?: string
   punti: number
   ts: number
 }
@@ -101,10 +104,6 @@ export interface EventoPunti {
 /** Stato di avanzamento per il gioco delle notizie */
 export interface StatoNotizie {
   indice: number
-  /** Quante squadre hanno gia sbagliato su questa notizia */
-  tentativi: string[]
-  rivelata: boolean
-  chiuse: string[]
 }
 
 export interface StatoImmagini {
@@ -113,27 +112,22 @@ export interface StatoImmagini {
   /** Quante immagini sono state mostrate per la voce corrente (1..n) */
   immagineIndex: number
   rivelata: boolean
-  chiuse: string[]
 }
 
 export interface StatoQdcp {
   indice: number
-  /** Quanti indizi sono stati letti (0..4) */
+  /** Quanti indizi sono stati letti (1..4) */
   indiziLetti: number
-  rivelata: boolean
-  chiuse: string[]
 }
 
 export interface StatoMusica {
   categoriaIndex: number
-  /** Brano evidenziato: e' quello su cui agiscono le scorciatoie da tastiera */
+  /** Brano evidenziato: e' quello su cui agiscono turno e scorciatoie */
   branoIndex: number
-  /** Indice nel giro dei giocatori */
-  turnoIndex: number
+  /** Squadra di turno: indice in `Sessione.squadre` (0 o 1) */
+  squadraIndex: number
   /** Moltiplicatore per brano: 1, 0.5, 0.25. Assente = pieno. */
   moltiplicatori?: Record<string, number>
-  /** Giocatori usciti dalla categoria in corso */
-  eliminati: string[]
 }
 
 export interface Sessione {

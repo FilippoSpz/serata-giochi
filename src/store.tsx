@@ -3,8 +3,14 @@ import type { ReactNode } from 'react'
 import { DATI_INIZIALI } from './dati'
 import type { DatiGiochi, EventoPunti, Giocatore, IdGioco, Sessione, Squadra } from './tipi'
 
-const CHIAVE_DATI = 'serata-giochi:dati:v1'
-const CHIAVE_SESSIONE = 'serata-giochi:sessione:v1'
+/**
+ * La versione nella chiave e' il modo per far ripartire tutti dai contenuti
+ * del codice: alzarla scarta la copia rimasta nel browser. Serve quando i
+ * contenuti di partenza cambiano, o quando una modifica fatta da Gestione —
+ * una notizia cancellata per sbaglio — e' rimasta incollata li' dentro.
+ */
+export const CHIAVE_DATI = 'serata-giochi:dati:v2'
+export const CHIAVE_SESSIONE = 'serata-giochi:sessione:v2'
 
 export const COLORI_SQUADRE = ['#ff5c7a', '#3ddc97'] as const
 
@@ -41,10 +47,10 @@ function datiValidi(v: unknown): boolean {
  */
 function avanzamentoIniziale() {
   return {
-    notizie: { indice: 0, tentativi: [], rivelata: false, chiuse: [] },
-    immagini: { categoriaIndex: 0, voceIndex: 0, immagineIndex: 1, rivelata: false, chiuse: [] },
-    qdcp: { indice: 0, indiziLetti: 1, rivelata: false, chiuse: [] },
-    musica: { categoriaIndex: 0, branoIndex: 0, turnoIndex: 0, moltiplicatori: {}, eliminati: [] },
+    notizie: { indice: 0 },
+    immagini: { categoriaIndex: 0, voceIndex: 0, immagineIndex: 1, rivelata: false },
+    qdcp: { indice: 0, indiziLetti: 1 },
+    musica: { categoriaIndex: 0, branoIndex: 0, squadraIndex: 0, moltiplicatori: {} },
   } satisfies Pick<Sessione, 'notizie' | 'immagini' | 'qdcp' | 'musica'>
 }
 
@@ -84,23 +90,27 @@ export function nuovoId(prefisso = 'id') {
   return `${prefisso}-${Math.random().toString(36).slice(2, 9)}`
 }
 
+/** Le due formazioni nell'ordine di Setup: [giocatori di A, giocatori di B]. */
+export type Formazioni = [string[], string[]]
+
 /**
- * Crea una sessione con squadre e giocatori disposti come dice il regolamento
- * della musica: A, B, A, B... L'ordine dell'array e' l'ordine dei turni.
+ * Crea una sessione. I giocatori restano elencati squadra per squadra: dicono
+ * chi c'e' al tavolo, non segnano punti — quelli sono sempre della squadra.
  */
-export function creaSessione(nomiGiocatori: string[], nomiSquadre: [string, string]): Sessione {
+export function creaSessione(formazioni: Formazioni, nomiSquadre: [string, string]): Sessione {
   const squadre: Squadra[] = nomiSquadre.map((nome, i) => ({
     id: `squadra-${i + 1}`,
     nome,
     colore: COLORI_SQUADRE[i],
   }))
 
-  const giocatori: Giocatore[] = nomiGiocatori
-    .map((nome, i) => ({
-      id: `g-${i + 1}`,
+  const giocatori: Giocatore[] = formazioni.flatMap((nomi, iSquadra) =>
+    nomi.map((nome, i) => ({
+      id: `g${iSquadra + 1}-${i + 1}`,
       nome: nome.trim() || `Giocatore ${i + 1}`,
-      squadraId: squadre[i % 2].id,
-    }))
+      squadraId: squadre[iSquadra].id,
+    })),
+  )
 
   return {
     id: nuovoId('sessione'),
@@ -118,7 +128,7 @@ interface ValoreStore {
   sessione: Sessione | null
   setDati: (aggiorna: (d: DatiGiochi) => DatiGiochi) => void
   ripristinaDati: () => void
-  avviaSessione: (nomiGiocatori: string[], nomiSquadre: [string, string]) => void
+  avviaSessione: (formazioni: Formazioni, nomiSquadre: [string, string]) => void
   aggiornaSessione: (aggiorna: (s: Sessione) => Sessione) => void
   chiudiSessione: () => void
   assegnaPunti: (evento: Omit<EventoPunti, 'id' | 'ts'>) => void
@@ -193,8 +203,8 @@ export function ProviderStore({ children }: { children: ReactNode }) {
 
   const ripristinaDati = useCallback(() => setDatiState(DATI_INIZIALI), [])
 
-  const avviaSessione = useCallback((nomi: string[], nomiSquadre: [string, string]) => {
-    setSessione(creaSessione(nomi, nomiSquadre))
+  const avviaSessione = useCallback((formazioni: Formazioni, nomiSquadre: [string, string]) => {
+    setSessione(creaSessione(formazioni, nomiSquadre))
   }, [])
 
   const aggiornaSessione = useCallback((aggiorna: (s: Sessione) => Sessione) => {
@@ -269,12 +279,6 @@ export function useStore() {
 export function punteggioSquadra(sessione: Sessione, squadraId: string) {
   return sessione.eventi
     .filter((e) => e.squadraId === squadraId)
-    .reduce((tot, e) => tot + e.punti, 0)
-}
-
-export function punteggioGiocatore(sessione: Sessione, giocatoreId: string) {
-  return sessione.eventi
-    .filter((e) => e.giocatoreId === giocatoreId)
     .reduce((tot, e) => tot + e.punti, 0)
 }
 

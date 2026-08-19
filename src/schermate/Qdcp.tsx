@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import {
   AnnullaUltimo,
   AssegnaASquadra,
@@ -33,16 +34,16 @@ export function Qdcp({ vaiA }: { vaiA: (r: Rotta) => void }) {
   const letti = Math.min(Math.max(stato.indiziLetti, 1), CHIAVI.length)
   const punti = Math.max(1, CHIAVI.length + 1 - letti)
 
+  const squadraCorrente = sessione.squadre[indice % 2]
   const assegnate = vociAssegnate(sessione, 'qdcp')
   const assegnazione = assegnazioneDi(sessione, 'qdcp', parola.id)
 
   const patch = (p: Partial<typeof stato>) =>
     aggiornaSessione((s) => ({ ...s, qdcp: { ...s.qdcp, ...p } }))
 
-  const vaiAParola = (nuovo: number) =>
-    patch({ indice: nuovo, indiziLetti: 1, rivelata: false })
+  const vaiAParola = (nuovo: number) => patch({ indice: nuovo, indiziLetti: 1 })
 
-  const indovinata = (squadraId: string, nomeSquadra: string) => {
+  const indovinata = (squadraId: string, nomeSquadra: string) =>
     assegnaPunti({
       gioco: 'qdcp',
       voceId: parola.id,
@@ -50,8 +51,6 @@ export function Qdcp({ vaiA }: { vaiA: (r: Rotta) => void }) {
       squadraId,
       punti,
     })
-    patch({ rivelata: true })
-  }
 
   return (
     <>
@@ -72,11 +71,21 @@ export function Qdcp({ vaiA }: { vaiA: (r: Rotta) => void }) {
       <Regolamento voci={REGOLE.qdcp} />
 
       <div className="card" style={{ marginTop: 18 }}>
+        <div
+          className="valore-attuale"
+          style={{ '--colore': squadraCorrente.colore } as CSSProperties}
+        >
+          <span className="etichetta">Tocca a</span>
+          <span className="numero" style={{ color: squadraCorrente.colore, fontSize: 18 }}>
+            {squadraCorrente.nome}
+          </span>
+        </div>
+
         <ValoreAttuale punti={punti} nota={`indizio ${letti} di ${CHIAVI.length}`} />
 
-        <div className={`parola-nascosta${stato.rivelata ? '' : ' coperta'}`}>
-          {stato.rivelata ? parola.parola : '? ? ? ?'}
-        </div>
+        {/* La parola sta qui in chiaro: questa pagina la guarda solo chi conduce,
+            e deve poterla leggere senza scoprirla ogni volta. */}
+        <div className="parola-in-gioco">{parola.parola}</div>
 
         <div className="indizi">
           {CHIAVI.map((c, i) => {
@@ -95,6 +104,7 @@ export function Qdcp({ vaiA }: { vaiA: (r: Rotta) => void }) {
           punti={punti}
           assegnataA={assegnazione?.squadraId}
           puntiAssegnati={assegnazione?.punti}
+          etichetta={`Chi ha indovinato? (tocca a ${squadraCorrente.nome})`}
           onAssegna={(s) => indovinata(s.id, s.nome)}
           onRimuovi={() => assegnazione && annullaEvento(assegnazione.id)}
         />
@@ -110,12 +120,6 @@ export function Qdcp({ vaiA }: { vaiA: (r: Rotta) => void }) {
               ← Nascondi ultimo indizio
             </button>
           )}
-          <button
-            className="btn btn--fantasma"
-            onClick={() => patch({ rivelata: !stato.rivelata })}
-          >
-            {stato.rivelata ? 'Nascondi parola' : 'Rivela parola'}
-          </button>
           <AnnullaUltimo />
         </div>
       </div>

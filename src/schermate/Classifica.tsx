@@ -4,7 +4,6 @@ import type { Rotta } from '../rotte'
 import {
   formattaPunti,
   nuovoId,
-  punteggioGiocatore,
   punteggioSquadra,
   punteggioSquadraPerGioco,
   useStore,
@@ -27,11 +26,7 @@ export function Classifica({ vaiA }: { vaiA: (r: Rotta) => void }) {
   const massimo = Math.max(...totali.map((t) => t.punti))
   const pareggio = totali.filter((t) => t.punti === massimo).length > 1
 
-  const giocatoriOrdinati = [...sessione.giocatori]
-    .map((g) => ({ g, punti: punteggioGiocatore(sessione, g.id) }))
-    .sort((a, b) => b.punti - a.punti)
-
-  const rettifica = (squadraId: string, giocatoreId: string | undefined, delta: number) =>
+  const rettifica = (squadraId: string, delta: number) =>
     assegnaPunti({
       gioco: 'manuale',
       // Identificativo unico: le rettifiche si sommano, non si sostituiscono
@@ -39,7 +34,6 @@ export function Classifica({ vaiA }: { vaiA: (r: Rotta) => void }) {
       voceId: nuovoId('rettifica'),
       etichetta: `Rettifica manuale ${delta > 0 ? '+' : ''}${delta}`,
       squadraId,
-      giocatoreId,
       punti: delta,
     })
 
@@ -61,86 +55,46 @@ export function Classifica({ vaiA }: { vaiA: (r: Rotta) => void }) {
         </button>
       </div>
 
+      {/* Un solo punteggio per squadra: tutti e quattro i giochi assegnano li'. */}
       <div className="griglia-classifica">
-        {sessione.squadre.map((s) => (
-          <div key={s.id} className="pannello-squadra" style={{ '--colore': s.colore } as CSSProperties}>
-            <div className="nome">{s.nome}</div>
-            <div className="totale">{formattaPunti(punteggioSquadra(sessione, s.id))}</div>
-            <div className="dettaglio">
-              {GIOCHI.map((g) => {
-                const p = punteggioSquadraPerGioco(sessione, s.id, g.id)
-                if (g.id === 'manuale' && p === 0) return null
-                return (
-                  <div key={g.id}>
-                    <span>{g.nome}</span>
-                    <b>{formattaPunti(p)}</b>
-                  </div>
-                )
-              })}
+        {sessione.squadre.map((s) => {
+          const formazione = sessione.giocatori.filter((g) => g.squadraId === s.id)
+          return (
+            <div
+              key={s.id}
+              className="pannello-squadra"
+              style={{ '--colore': s.colore } as CSSProperties}
+            >
+              <div className="nome">{s.nome}</div>
+              <div className="totale">{formattaPunti(punteggioSquadra(sessione, s.id))}</div>
+              <div className="dettaglio">
+                {GIOCHI.map((g) => {
+                  const p = punteggioSquadraPerGioco(sessione, s.id, g.id)
+                  if (g.id === 'manuale' && p === 0) return null
+                  return (
+                    <div key={g.id}>
+                      <span>{g.nome}</span>
+                      <b>{formattaPunti(p)}</b>
+                    </div>
+                  )
+                })}
+              </div>
+              {formazione.length > 0 && (
+                <div className="formazione-squadra">
+                  {formazione.map((g) => g.nome).join(' · ')}
+                </div>
+              )}
+              <div className="riga-bottoni" style={{ marginTop: 14 }}>
+                <button className="btn btn--piccolo" onClick={() => rettifica(s.id, 1)}>
+                  +1
+                </button>
+                <button className="btn btn--piccolo" onClick={() => rettifica(s.id, -1)}>
+                  −1
+                </button>
+              </div>
             </div>
-            <div className="riga-bottoni" style={{ marginTop: 14 }}>
-              <button className="btn btn--piccolo" onClick={() => rettifica(s.id, undefined, 1)}>
-                +1
-              </button>
-              <button className="btn btn--piccolo" onClick={() => rettifica(s.id, undefined, -1)}>
-                −1
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="card">
-        <div className="card-titolo">Punteggi individuali ({sessione.giocatori.length} giocatori)</div>
-        <p className="avviso" style={{ marginBottom: 14 }}>
-          I punti individuali arrivano dal gioco della musica, l’unico che si gioca a giocatore
-          singolo. Gli altri tre assegnano punti direttamente alla squadra, quindi il totale di
-          squadra è sempre maggiore o uguale alla somma dei suoi giocatori.
-        </p>
-        <div className="scorri">
-          <table className="tabella">
-            <thead>
-              <tr>
-                <th style={{ width: 40 }}>#</th>
-                <th>Giocatore</th>
-                <th>Squadra</th>
-                <th className="num">Punti musica</th>
-                <th className="num" style={{ width: 120 }}>
-                  Rettifica
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {giocatoriOrdinati.map(({ g, punti }, i) => {
-                const sq = sessione.squadre.find((s) => s.id === g.squadraId)!
-                return (
-                  <tr key={g.id}>
-                    <td style={{ color: 'var(--testo-tenue)' }}>{i + 1}</td>
-                    <td>
-                      <b>{g.nome}</b>
-                    </td>
-                    <td style={{ color: sq.colore, fontWeight: 700 }}>{sq.nome}</td>
-                    <td className="num punti-forte">{formattaPunti(punti)}</td>
-                    <td className="num">
-                      <button
-                        className="btn btn--piccolo"
-                        onClick={() => rettifica(g.squadraId, g.id, 1)}
-                      >
-                        +1
-                      </button>{' '}
-                      <button
-                        className="btn btn--piccolo"
-                        onClick={() => rettifica(g.squadraId, g.id, -1)}
-                      >
-                        −1
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+          )
+        })}
       </div>
 
       <div className="card">

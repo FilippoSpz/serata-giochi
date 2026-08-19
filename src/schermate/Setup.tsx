@@ -3,66 +3,90 @@ import type { CSSProperties } from 'react'
 import { useConferma } from '../componenti/Conferma'
 import type { Rotta } from '../rotte'
 import { COLORI_SQUADRE, useStore } from '../store'
+import type { Formazioni } from '../store'
 import type { Giocatore } from '../tipi'
 
-const MIN_GIOCATORI = 2
-const MAX_GIOCATORI = 16
-const PREDEFINITI = 8
+const MIN_PER_SQUADRA = 1
+const MAX_PER_SQUADRA = 8
+const PREDEFINITI = 4
+
+const LETTERE = ['A', 'B'] as const
+
+/** Divide i giocatori di una sessione gia' aperta nelle due formazioni. */
+function formazioniDa(giocatori: Giocatore[], idSquadre: string[]): Formazioni {
+  const per = (id: string) => giocatori.filter((g) => g.squadraId === id).map((g) => g.nome)
+  return [per(idSquadre[0]), per(idSquadre[1])]
+}
 
 export function Setup({ vaiA }: { vaiA: (r: Rotta) => void }) {
   const { sessione, avviaSessione, aggiornaSessione, chiudiSessione } = useStore()
   const conferma = useConferma()
 
   const [nomiSquadre, setNomiSquadre] = useState<[string, string]>(() =>
-    sessione
-      ? [sessione.squadre[0].nome, sessione.squadre[1].nome]
-      : ['Squadra A', 'Squadra B'],
+    sessione ? [sessione.squadre[0].nome, sessione.squadre[1].nome] : ['Squadra A', 'Squadra B'],
   )
-  const [nomi, setNomi] = useState<string[]>(() =>
-    sessione
-      ? sessione.giocatori.map((g) => g.nome)
-      : Array.from({ length: PREDEFINITI }, (_, i) => `Giocatore ${i + 1}`),
-  )
-
-  const cambiaNumero = (n: number) => {
-    setNomi((precedenti) => {
-      if (n <= precedenti.length) return precedenti.slice(0, n)
+  const [formazioni, setFormazioni] = useState<Formazioni>(() => {
+    if (sessione) {
+      const divise = formazioniDa(
+        sessione.giocatori,
+        sessione.squadre.map((s) => s.id),
+      )
+      // Una squadra senza nessuno bloccherebbe la schermata su una colonna vuota.
       return [
-        ...precedenti,
-        ...Array.from({ length: n - precedenti.length }, (_, i) => `Giocatore ${precedenti.length + i + 1}`),
+        divise[0].length ? divise[0] : ['Giocatore 1'],
+        divise[1].length ? divise[1] : ['Giocatore 1'],
       ]
-    })
-  }
+    }
+    const base = (offset: number) =>
+      Array.from({ length: PREDEFINITI }, (_, i) => `Giocatore ${offset + i + 1}`)
+    return [base(0), base(PREDEFINITI)]
+  })
+
+  const totale = formazioni[0].length + formazioni[1].length
+
+  const cambiaNome = (squadra: number, i: number, nome: string) =>
+    setFormazioni(
+      (p) =>
+        p.map((nomi, s) => (s === squadra ? nomi.map((v, j) => (j === i ? nome : v)) : nomi)) as Formazioni,
+    )
+
+  const aggiungi = (squadra: number) =>
+    setFormazioni(
+      (p) =>
+        p.map((nomi, s) =>
+          s === squadra && nomi.length < MAX_PER_SQUADRA
+            ? [...nomi, `Giocatore ${nomi.length + 1}`]
+            : nomi,
+        ) as Formazioni,
+    )
+
+  const togli = (squadra: number, i: number) =>
+    setFormazioni(
+      (p) =>
+        p.map((nomi, s) =>
+          s === squadra && nomi.length > MIN_PER_SQUADRA ? nomi.filter((_, j) => j !== i) : nomi,
+        ) as Formazioni,
+    )
 
   const salva = () => {
     if (!sessione) {
-      avviaSessione(nomi, nomiSquadre)
+      avviaSessione(formazioni, nomiSquadre)
       vaiA('notizie')
       return
     }
     // Sessione gia' aperta: rinomina senza perdere i punti gia' assegnati.
+    // I punti sono della squadra, quindi cambiare la formazione non ne sposta
+    // nessuno: l'elenco dei giocatori dice solo chi c'e' al tavolo.
     aggiornaSessione((s) => {
       const squadre = s.squadre.map((sq, i) => ({ ...sq, nome: nomiSquadre[i] }))
-      const giocatori: Giocatore[] = nomi.map((nome, i) => {
-        const esistente = s.giocatori[i]
-        return {
-          id: esistente?.id ?? `g-${i + 1}-${Math.random().toString(36).slice(2, 6)}`,
+      const giocatori: Giocatore[] = formazioni.flatMap((nomi, iSquadra) =>
+        nomi.map((nome, i) => ({
+          id: `g${iSquadra + 1}-${i + 1}`,
           nome: nome.trim() || `Giocatore ${i + 1}`,
-          squadraId: squadre[i % 2].id,
-        }
-      })
-      const idRimasti = new Set(giocatori.map((g) => g.id))
-      return {
-        ...s,
-        squadre,
-        giocatori,
-        // Gli eventi dei giocatori rimossi restano a bilancio della squadra,
-        // ma perdono il riferimento individuale.
-        eventi: s.eventi.map((e) =>
-          e.giocatoreId && !idRimasti.has(e.giocatoreId) ? { ...e, giocatoreId: undefined } : e,
-        ),
-        musica: { ...s.musica, turnoIndex: 0, eliminati: [] },
-      }
+          squadraId: squadre[iSquadra].id,
+        })),
+      )
+      return { ...s, squadre, giocatori }
     })
     vaiA('home')
   }
@@ -76,7 +100,7 @@ export function Setup({ vaiA }: { vaiA: (r: Rotta) => void }) {
     }).then((ok) => {
       if (!ok) return
       chiudiSessione()
-      avviaSessione(nomi, nomiSquadre)
+      avviaSessione(formazioni, nomiSquadre)
       vaiA('home')
     })
 
@@ -86,93 +110,74 @@ export function Setup({ vaiA }: { vaiA: (r: Rotta) => void }) {
         <div>
           <h2>Prepara la serata</h2>
           <div className="sottotitolo">
-            I giocatori si siedono alternandosi A, B, A, B: l’ordine qui sotto è anche l’ordine dei
-            turni nel gioco della musica.
+            Due squadre che si sfidano a turno: prima una, poi l’altra. I punti sono sempre della
+            squadra, l’elenco dei giocatori serve solo a sapere chi c’è al tavolo.
           </div>
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-titolo">Squadre</div>
-        <div className="griglia-campi griglia-campi--2">
-          {nomiSquadre.map((nome, i) => (
-            <div className="campo" key={i}>
-              <label style={{ color: COLORI_SQUADRE[i] }}>Squadra {i === 0 ? 'A' : 'B'}</label>
+      <div className="griglia-squadre">
+        {formazioni.map((nomi, iSquadra) => (
+          <div
+            key={iSquadra}
+            className="pannello-formazione"
+            style={{ '--colore': COLORI_SQUADRE[iSquadra] } as CSSProperties}
+          >
+            <div className="testa-formazione">
+              <span className="sigla-squadra">{LETTERE[iSquadra]}</span>
               <input
-                value={nome}
+                className="nome-squadra"
+                value={nomiSquadre[iSquadra]}
+                aria-label={`Nome della squadra ${LETTERE[iSquadra]}`}
                 onChange={(e) =>
-                  setNomiSquadre((p) => (i === 0 ? [e.target.value, p[1]] : [p[0], e.target.value]))
+                  setNomiSquadre((p) =>
+                    iSquadra === 0 ? [e.target.value, p[1]] : [p[0], e.target.value],
+                  )
                 }
               />
+              <span className="conta-formazione">
+                {nomi.length} {nomi.length === 1 ? 'giocatore' : 'giocatori'}
+              </span>
             </div>
-          ))}
-        </div>
-      </div>
 
-      <div className="card">
-        <div className="card-titolo">Giocatori ({nomi.length})</div>
-        <div className="riga-bottoni" style={{ marginBottom: 16 }}>
-          <button
-            className="btn btn--piccolo"
-            onClick={() => {
-              const ultimo = nomi.length - 1
-              const puntiSuoi = sessione
-                ? sessione.eventi
-                    .filter((e) => e.giocatoreId === sessione.giocatori[ultimo]?.id)
-                    .reduce((t, e) => t + e.punti, 0)
-                : 0
-              if (puntiSuoi === 0) {
-                cambiaNumero(Math.max(MIN_GIOCATORI, ultimo))
-                return
-              }
-              void conferma({
-                titolo: `Rimuovere ${nomi[ultimo]}?`,
-                messaggio: `Ha ${puntiSuoi} punti individuali. Restano a bilancio della squadra, ma non saranno più attribuiti a nessuno.`,
-                conferma: 'Rimuovi',
-                pericolo: true,
-              }).then((ok) => ok && cambiaNumero(Math.max(MIN_GIOCATORI, ultimo)))
-            }}
-            disabled={nomi.length <= MIN_GIOCATORI}
-          >
-            − Rimuovi
-          </button>
-          <button
-            className="btn btn--piccolo"
-            onClick={() => cambiaNumero(Math.min(MAX_GIOCATORI, nomi.length + 1))}
-            disabled={nomi.length >= MAX_GIOCATORI}
-          >
-            + Aggiungi
-          </button>
-          <button className="btn btn--piccolo btn--fantasma" onClick={() => cambiaNumero(8)}>
-            Torna a 8
-          </button>
-        </div>
+            <div className="elenco-formazione">
+              {nomi.map((nome, i) => (
+                <div key={i} className="riga-giocatore">
+                  <span className="indice">{i + 1}</span>
+                  <input
+                    value={nome}
+                    placeholder={`Giocatore ${i + 1}`}
+                    onChange={(e) => cambiaNome(iSquadra, i, e.target.value)}
+                  />
+                  <button
+                    className="togli-giocatore"
+                    onClick={() => togli(iSquadra, i)}
+                    disabled={nomi.length <= MIN_PER_SQUADRA}
+                    title="Togli dalla formazione"
+                    aria-label={`Togli ${nome || `Giocatore ${i + 1}`}`}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
 
-        <div className="griglia-giocatori">
-          {nomi.map((nome, i) => (
-            <div
-              key={i}
-              className="riga-giocatore"
-              style={{ '--colore': COLORI_SQUADRE[i % 2] } as CSSProperties}
+            <button
+              className="btn btn--piccolo"
+              onClick={() => aggiungi(iSquadra)}
+              disabled={nomi.length >= MAX_PER_SQUADRA}
             >
-              <span className="indice">{i % 2 === 0 ? 'A' : 'B'}</span>
-              <input
-                value={nome}
-                placeholder={`Giocatore ${i + 1}`}
-                onChange={(e) =>
-                  setNomi((p) => p.map((v, j) => (j === i ? e.target.value : v)))
-                }
-              />
-            </div>
-          ))}
-        </div>
-
-        <p className="avviso" style={{ marginTop: 16 }}>
-          Con <b>{nomi.length} giocatori</b> ogni squadra ne ha {Math.ceil(nomi.length / 2)} e{' '}
-          {Math.floor(nomi.length / 2)}. Nel gioco della musica il turno passa in quest’ordine, così
-          le squadre si alternano da sole.
-        </p>
+              + Aggiungi giocatore
+            </button>
+          </div>
+        ))}
       </div>
+
+      <p className="avviso" style={{ marginTop: 16 }}>
+        <b>{totale} giocatori</b> in tutto: {formazioni[0].length} in {nomiSquadre[0]} e{' '}
+        {formazioni[1].length} in {nomiSquadre[1]}. Le formazioni possono anche essere di numero
+        diverso: si gioca squadra contro squadra, non uno contro uno.
+      </p>
 
       <div className="riga-bottoni" style={{ marginTop: 18 }}>
         <button className="btn btn--primario btn--grande" onClick={salva}>

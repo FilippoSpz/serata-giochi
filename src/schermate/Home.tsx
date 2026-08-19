@@ -28,7 +28,7 @@ const GIOCHI: { rotta: Rotta; numero: number; titolo: string; descrizione: strin
     numero: 4,
     titolo: 'Musica',
     descrizione:
-      'Ventiquattro brani in quattro categorie. Si gioca a giocatore singolo, titolo e artista.',
+      'Ventiquattro brani in quattro categorie. Le squadre si alternano: titolo e artista.',
   },
 ]
 
@@ -89,7 +89,7 @@ export function Home({ vaiA }: { vaiA: (r: Rotta) => void }) {
         <div className="vuoto card">
           <h3>Benvenuto</h3>
           <p>
-            Crea la sessione per iniziare: due squadre, fino a 16 giocatori.
+            Crea la sessione per iniziare: due squadre, fino a 8 giocatori per parte.
             <br />
             Tutti i contenuti sono già caricati dal PDF e modificabili da <b>Gestione</b>.
           </p>

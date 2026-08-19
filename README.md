@@ -30,25 +30,23 @@ npm run preview
 
 | # | Gioco | Chi segna | Come si calcola il punteggio |
 |---|-------|-----------|------------------------------|
-| 1 | Notizie false | Squadra | 1 punto a notizia. Si alterna a ogni errore; chi parte cambia a ogni domanda. |
+| 1 | Notizie false | Squadra | 1 punto a notizia. Le squadre rispondono a turno, una notizia a testa. |
 | 2 | Immagini | Squadra | Si parte dai punti della categoria e si scala di 1 a ogni nuova immagine mostrata (minimo 1). I loghi valgono 1 punto fisso. |
 | 3 | QDCP | Squadra | 4 punti al primo indizio, poi 3, 2, 1 a ogni indizio letto. |
-| 4 | Musica | **Giocatore** | Titolo 1 punto, artista 1 punto. Il moltiplicatore per brano dimezza il valore (pieno → ½ → ¼). Chi sbaglia esce dalla categoria in corso. |
+| 4 | Musica | Squadra | Titolo 1 punto, artista 1 punto. A ogni passaggio agli avversari il valore si dimezza (pieno → ½ → ¼). |
 
-I primi tre giochi assegnano punti direttamente alla squadra; la musica li assegna al singolo
-giocatore **e** alla sua squadra. Per questo il totale di squadra è sempre ≥ della somma dei suoi
-giocatori.
+Tutti e quattro i giochi assegnano i punti alla **squadra**: si sfidano le squadre a turno, prima
+una e poi l'altra, e in classifica c'è un solo totale per squadra.
 
-## Punteggio per 8 giocatori
+## Squadre e formazioni
 
-Sì, ed è il caso predefinito. In **Prepara la serata** imposti da 2 a 16 giocatori (8 di default):
-vengono assegnati alle due squadre alternandosi A, B, A, B — esattamente la disposizione al tavolo
-descritta dal regolamento della musica. L'ordine dell'elenco è anche l'ordine dei turni.
+In **Prepara la serata** le due squadre stanno in due riquadri separati, ognuno con il proprio
+colore e la propria formazione (fino a 8 giocatori per parte, anche di numero diverso). I nomi dei
+giocatori servono a sapere chi c'è al tavolo: i punti restano della squadra.
 
-La **Classifica** mostra tre livelli:
+La **Classifica** mostra due livelli:
 
-- totale per squadra, con il dettaglio gioco per gioco;
-- tabella dei punti individuali, ordinata;
+- totale per squadra, con il dettaglio gioco per gioco e la formazione;
 - registro completo di ogni assegnazione, con annullamento singolo.
 
 Ogni riga ha `+1` / `−1` per le rettifiche a mano, e ogni schermata di gioco ha «Annulla ultimo»:

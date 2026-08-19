@@ -554,26 +554,27 @@ export const SECONDI_INDIZIO = 5
 export const REGOLE = {
   notizie: [
     'Per ogni notizia vengono lette quattro possibilità: una sola è vera.',
-    'Ogni notizia indovinata vale 1 punto.',
-    'Si risponde a turno. Quando una squadra sbaglia, la parola passa agli avversari, e si continua ad alternarsi finché qualcuno non trova quella vera.',
+    'Rispondono le squadre a turno: una notizia per squadra, poi si cambia.',
+    'Chi indovina prende 1 punto. Se sbaglia non perde nulla: si passa alla notizia successiva.',
     'Consiglio per chi legge: leggi tutte e quattro le opzioni con lo stesso tono. Se enfatizzi quella giusta, il gioco finisce subito.',
   ],
   immagini: [
     'Quattro categorie: persone famose, loghi, fotogrammi di film, oggetti. Ogni categoria contiene quattro elementi da indovinare.',
-    'Ogni squadra ha un solo tentativo per ciascuna immagine mostrata. Se sbaglia, tocca agli avversari, e si continua ad alternarsi finché non si indovina.',
+    'Si gioca a squadre alternate: parte una squadra, all’immagine dopo l’altra. Un tentativo per volta; se sbaglia, provano gli avversari.',
     'Quando una categoria prevede più immagini per lo stesso elemento, le immagini successive si mostrano solo dopo che entrambe le squadre hanno provato.',
   ],
   qdcp: [
+    'Si gioca a squadre alternate: una parola per squadra, poi si cambia.',
     'Per ogni parola da indovinare gli indizi si leggono uno alla volta, sempre nello stesso ordine: quando, dove, come, perché.',
     'Ogni nuovo indizio svela qualcosa in più e abbassa il valore della parola: si parte da 4 punti e si scala di uno a ogni indizio aggiuntivo.',
     'Lascia qualche secondo di silenzio tra un indizio e il successivo: chi rischia presto guadagna il massimo.',
   ],
   musica: [
-    'Le squadre si siedono al tavolo alternandosi: A, B, A, B, e così via.',
-    'Il primo giocatore ascolta i primi 5 secondi del brano. Se indovina il titolo prende 1 punto; se indovina anche l’artista ne prende un altro.',
-    'Se sbaglia, esce dalla categoria in corso e il brano passa al giocatore successivo.',
-    'Chi riceve il brano ha due possibilità: ascoltare i 5 secondi successivi, dimezzando il punteggio, oppure passare direttamente al brano successivo — anche in questo caso il punteggio si dimezza.',
-    'Quando un brano viene indovinato si passa al giocatore successivo con un brano nuovo.',
+    'Si sfidano le squadre, non i singoli: prima una, poi l’altra.',
+    'La squadra di turno ascolta i primi 5 secondi del brano. Se indovina il titolo prende 1 punto; se indovina anche l’artista ne prende un altro.',
+    'Se sbaglia, il brano passa agli avversari, che ascoltano i 5 secondi successivi: il valore si dimezza.',
+    'A ogni passaggio il valore si dimezza ancora. Se non lo prende nessuno il brano si chiude senza punti.',
+    'Chiuso un brano si riparte con quello nuovo, e tocca all’altra squadra.',
     'Quattro categorie da sei brani ciascuna, per un totale di 24 brani.',
   ],
 } as const
